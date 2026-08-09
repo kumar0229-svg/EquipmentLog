@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 240 240" fill="none">
+    <rect x="106" y="34" width="28" height="18" rx="2" style="stroke:oklch(30% 0.03 255);fill:oklch(97% 0.004 255);stroke-width:4"></rect>
+    <rect x="50" y="52" width="140" height="98" rx="8" style="stroke:oklch(30% 0.03 255);fill:oklch(97% 0.004 255);stroke-width:5"></rect>
+    <rect x="68" y="65" width="104" height="46" rx="4" style="stroke:oklch(30% 0.03 255);fill:none;stroke-width:3"></rect>
+    <circle cx="88" cy="130" r="14" style="stroke:oklch(30% 0.03 255);fill:oklch(97% 0.004 255);stroke-width:4"></circle>
+    <circle cx="152" cy="130" r="14" style="stroke:oklch(30% 0.03 255);fill:oklch(97% 0.004 255);stroke-width:4"></circle>
+    <line x1="70" y1="150" x2="70" y2="180" style="stroke:oklch(30% 0.03 255);stroke-width:5;stroke-linecap:round"></line>
+    <line x1="170" y1="150" x2="170" y2="180" style="stroke:oklch(30% 0.03 255);stroke-width:5;stroke-linecap:round"></line>
+    <line x1="55" y1="200" x2="185" y2="200" style="stroke:oklch(30% 0.03 255);stroke-width:6;stroke-linecap:round"></line>
+  </svg>

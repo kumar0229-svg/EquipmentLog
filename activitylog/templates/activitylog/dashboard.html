@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block body_class %}dashboard-page{% endblock %}
+
+{% block content %}
+<h1>Dashboard</h1>
+
+<div class="filters">
+  {% if not stream_locked %}
+    <form method="get">
+      <p>
+        <label for="stream-select">Stream</label>
+        <select id="stream-select" name="stream">
+          <option value="">Select a stream…</option>
+          {% for stream in streams %}
+            <option value="{{ stream.pk }}" {% if selected_stream.pk == stream.pk %}selected{% endif %}>{{ stream.full_path }}</option>
+          {% endfor %}
+        </select>
+      </p>
+      <button type="submit" class="primary">Show</button>
+    </form>
+  {% endif %}
+</div>
+
+{% if selected_stream %}
+  {% for group in equipment_groups %}
+    <h2>{{ group.type_name }}</h2>
+    {% include 'activitylog/_equipment_grid.html' with rows=group.rows %}
+  {% empty %}
+    <p class="muted">No equipment configured in this stream yet.</p>
+  {% endfor %}
+{% else %}
+  <p class="muted">Select a stream above to view its equipment.</p>
+{% endif %}
+{% endblock %}

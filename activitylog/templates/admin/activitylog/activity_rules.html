@@ -1,0 +1,42 @@
+{% extends "admin/base_site.html" %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">Home</a>
+  &rsaquo; Activity Rules
+</div>
+{% endblock %}
+
+{% block content_title %}<h1>Activity Rules</h1>{% endblock %}
+
+{% block content %}
+<p>
+  What each activity requires the equipment's current status to be before it can start, what the
+  status becomes while it runs, and what it becomes once it's completed. This is generated
+  directly from <code>activitylog/rules.py</code> — the same rules Start Activity enforces — so
+  it can't drift out of sync with what the app actually does.
+</p>
+
+<table id="result_list">
+  <thead>
+    <tr>
+      <th scope="col">Activity</th>
+      <th scope="col">Sub Activity</th>
+      <th scope="col">Equipment status during activity</th>
+      <th scope="col">Equipment status after completion</th>
+      <th scope="col">Startable when current status is one of</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in rows %}
+    <tr class="{% cycle 'row1' 'row2' %}">
+      <td>{{ row.activity }}</td>
+      <td>{{ row.sub_activity }}</td>
+      <td>{{ row.during }}</td>
+      <td>{{ row.after }}</td>
+      <td>{{ row.allowed_from|join:", " }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

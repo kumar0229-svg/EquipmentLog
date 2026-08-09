@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Usage Log{% endblock %}
+
+{% block content %}
+<h1>Usage Log</h1>
+
+<form method="get" class="filters">
+  <p>{{ form.equipment.label_tag }} {{ form.equipment }}</p>
+  <p>{{ form.product.label_tag }} {{ form.product }}</p>
+  <p>{{ form.status.label_tag }} {{ form.status }}</p>
+  <p>{{ form.date_from.label_tag }} {{ form.date_from }}</p>
+  <p>{{ form.date_to.label_tag }} {{ form.date_to }}</p>
+  <button type="submit" class="primary">Filter</button>
+  <a class="btn" href="?{{ query }}&export=csv">Export CSV</a>
+</form>
+
+<div class="card">
+  <table class="grid">
+    <thead>
+      <tr>
+        <th>Equipment</th>
+        <th>Usage Type</th>
+        <th>Start</th>
+        <th>End</th>
+        <th>Equipment Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for entry in entries %}
+      <tr>
+        <td><a href="{% url 'entry_detail' entry.pk %}">{{ entry.equipment.code }}</a></td>
+        <td>{{ entry.usage_type.name }}</td>
+        <td>{{ entry.start_date|date:"d.m.Y" }} {{ entry.start_time|time:"H.i" }}</td>
+        <td>
+          {% if entry.end_date %}
+            {{ entry.end_date|date:"d.m.Y" }} {{ entry.end_time|time:"H.i" }}
+          {% else %}
+            <span class="muted">In progress</span>
+          {% endif %}
+        </td>
+        <td><span class="pill state-{{ entry.equipment.state }}">{{ entry.equipment.get_state_display }}</span></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5">No entries match these filters.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

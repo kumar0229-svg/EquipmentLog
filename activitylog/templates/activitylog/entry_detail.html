@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{{ entry.equipment.code }} — {{ entry.start_date }}{% endblock %}
+
+{% block content %}
+<h1>{{ entry.equipment.code }} — {{ entry.usage_type.name }}</h1>
+<div class="card narrow">
+  <dl class="detail">
+    <dt>Equipment</dt><dd>{{ entry.equipment.code }} — {{ entry.equipment.equipment_type.name }}</dd>
+    <dt>Area</dt><dd>{{ entry.area_snapshot }}</dd>
+    <dt>Usage Type</dt><dd>{{ entry.usage_type.name }}</dd>
+    {% if entry.product %}<dt>Product</dt><dd>{{ entry.product }}</dd>{% endif %}
+    {% if entry.batch_no %}<dt>Batch No</dt><dd>{{ entry.batch_no }}</dd>{% endif %}
+    {% if entry.process_sub_type %}<dt>Process Sub Activity</dt><dd>{{ entry.get_process_sub_type_display }}</dd>{% endif %}
+    {% if entry.cleaning_sop_no %}<dt>Cleaning SOP No</dt><dd>{{ entry.cleaning_sop_no }}</dd>{% endif %}
+    {% if entry.cleaning_type %}<dt>Type of Cleaning</dt><dd>{{ entry.get_cleaning_type_display }}</dd>{% endif %}
+    {% if entry.equipment_maintenance_sop_no %}<dt>Maintenance SOP No</dt><dd>{{ entry.equipment_maintenance_sop_no }}</dd>{% endif %}
+    {% if entry.maintenance_type %}<dt>Maintenance Type</dt><dd>{{ entry.get_maintenance_type_display }}</dd>{% endif %}
+    {% if entry.maintenance_frequency %}<dt>Frequency</dt><dd>{{ entry.get_maintenance_frequency_display }}</dd>{% endif %}
+    {% if entry.pm_process_order_no %}<dt>PM Process Order No</dt><dd>{{ entry.pm_process_order_no }}</dd>{% endif %}
+    {% if entry.qualification_protocol_no %}<dt>Qualification Protocol No</dt><dd>{{ entry.qualification_protocol_no }}</dd>{% endif %}
+    {% if entry.remarks %}<dt>Remarks</dt><dd>{{ entry.remarks|linebreaksbr }}</dd>{% endif %}
+    <dt>Started</dt><dd>{{ entry.start_date|date:"d.m.Y" }} {{ entry.start_time|time:"H.i" }} — {{ entry.start_by.username }}</dd>
+    <dt>Completed</dt>
+    <dd>
+      {% if entry.end_date %}
+        {{ entry.end_date|date:"d.m.Y" }} {{ entry.end_time|time:"H.i" }} — {{ entry.end_by.username }}
+      {% else %}
+        <span class="muted">In progress</span>
+      {% endif %}
+    </dd>
+    <dt>Status</dt><dd>{{ entry.get_status_display }}</dd>
+  </dl>
+  <div class="actions">
+    {% if entry.is_open %}
+      <a class="btn primary" href="{% url 'stop_activity' entry.pk %}">Complete activity</a>
+    {% endif %}
+    <a class="btn" href="{% url 'entry_list' %}">Back to Usage Log</a>
+  </div>
+</div>
+{% endblock %}

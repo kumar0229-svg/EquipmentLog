@@ -1,0 +1,40 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Equipment Activity Log{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body class="{% block body_class %}{% endblock %}">
+<header class="topbar">
+  <a class="brand" href="{% url 'dashboard' %}">Equipment Activity Log</a>
+  {% if user.is_authenticated %}
+    <nav>
+      <a href="{% url 'dashboard' %}">Dashboard</a>
+      <a href="{% url 'equipment_list' %}">Equipment</a>
+      <a href="{% url 'entry_list' %}">UsageLog</a>
+      {% if user.is_operator or user.is_engineer or user.is_admin_role %}
+        <a href="{% url 'start_activity' %}">Start Activity</a>
+      {% endif %}
+      {% if user.is_staff %}<a href="{% url 'admin:index' %}">MasterData</a>{% endif %}
+    </nav>
+    <div class="user">
+      <span>{{ user.get_full_name|default:user.username }} · {{ user.get_role_display }}</span>
+      <form method="post" action="{% url 'logout' %}">{% csrf_token %}
+        <button type="submit" class="link">Log out</button>
+      </form>
+    </div>
+  {% endif %}
+</header>
+
+<main>
+  {% if messages %}
+    <ul class="messages">
+      {% for message in messages %}<li class="msg {{ message.tags }}">{{ message }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

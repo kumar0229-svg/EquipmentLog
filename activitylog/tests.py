@@ -1,0 +1,268 @@
+from django.contrib.auth import get_user_model
+from django.test import TestCase
+from django.urls import reverse
+
+from accounts.models import Role
+from masters.models import Area, AreaType, Equipment, EquipmentState, EquipmentType, EquipmentUsageType
+
+from .models import ActivityLogEntry, EntryStatus, MaintenanceType, ProcessSubType
+
+User = get_user_model()
+
+
+class ActivityLogTestCase(TestCase):
+    def setUp(self):
+        self.stream = Area.objects.create(name='Stream-1', area_type=AreaType.STREAM)
+        self.location = Area.objects.create(
+            name='Floor-1', area_type=AreaType.LOCATION, parent=self.stream
+        )
+        self.equipment_type = EquipmentType.objects.create(name='Reactor')
+        self.equipment = Equipment.objects.create(
+            code='RX-101', equipment_type=self.equipment_type, area=self.location
+        )
+        self.non_reactor_type = EquipmentType.objects.create(name='Centrifuge')
+        self.non_reactor_equipment = Equipment.objects.create(
+            code='CF-101', equipment_type=self.non_reactor_type, area=self.location
+        )
+        self.process = EquipmentUsageType.objects.create(name='Process')
+        self.cleaning = EquipmentUsageType.objects.create(name='Cleaning')
+        self.maintenance = EquipmentUsageType.objects.create(name='Maintenance')
+        self.operator = User.objects.create_user(
+            'op1', password='pw-test-12345', role=Role.OPERATOR
+        )
+
+    def make_entry(self, **overrides):
+        fields = {
+            'equipment': self.equipment,
+            'usage_type': self.process,
+            'start_date': '2026-01-01',
+            'start_time': '09:00',
+            'start_by': self.operator,
+            'created_by': self.operator,
+        }
+        fields.update(overrides)
+        return ActivityLogEntry.objects.create(**fields)
+
+
+class ActivityLogEntryModelTests(ActivityLogTestCase):
+    def test_area_snapshot_defaults_to_equipment_area(self):
+        entry = self.make_entry()
+        self.assertEqual(entry.area_snapshot, self.equipment.area.full_path)
+
+    def test_is_open_true_until_end_date_set(self):
+        entry = self.make_entry()
+        self.assertTrue(entry.is_open)
+        entry.end_date = '2026-01-02'
+        entry.save()
+        self.assertFalse(entry.is_open)
+
+
+class StartActivityViewTests(ActivityLogTestCase):
+    def setUp(self):
+        super().setUp()
+        self.client.login(username='op1', password='pw-test-12345')
+
+    def test_start_activity_sets_equipment_state_and_creates_entry(self):
+        self.equipment.state = EquipmentState.TO_BE_CLEANED
+        self.equipment.save(update_fields=['state'])
+
+        response = self.client.post(
+            reverse('start_activity'),
+            {
+                'equipment': self.equipment.pk,
+                'usage_type': self.cleaning.pk,
+                'batch_no': 'B-1',
+                'cleaning_sop_no': 'SOP-1',
+                'cleaning_type': 'A',
+                'remarks': '',
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        entry = ActivityLogEntry.objects.get(equipment=self.equipment)
+        self.assertEqual(entry.status, EntryStatus.IN_PROGRESS)
+        self.assertTrue(entry.is_open)
+        self.equipment.refresh_from_db()
+        self.assertEqual(self.equipment.state, EquipmentState.UNDER_CLEANING)
+
+    def test_cannot_start_second_activity_while_one_is_open(self):
+        self.make_entry()
+        response = self.client.post(
+            reverse('start_activity'),
+            {'equipment': self.equipment.pk, 'usage_type': self.process.pk, 'remarks': ''},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'already has an activity in progress')
+        self.assertEqual(ActivityLogEntry.objects.filter(equipment=self.equipment).count(), 1)
+
+    def test_get_with_equipment_param_redirects_to_stop_when_already_open(self):
+        entry = self.make_entry()
+        response = self.client.get(reverse('start_activity') + f'?equipment={self.equipment.pk}')
+        self.assertRedirects(response, reverse('stop_activity', args=[entry.pk]))
+
+    def test_blocked_when_equipment_status_not_allowed_for_rule(self):
+        # Fresh equipment defaults to Idle, which only unlocks Cleaning/Type-B
+        # — Cleaning/Type-A requires To Be Cleaned or Cleaned and QA Certified.
+        response = self.client.post(
+            reverse('start_activity'),
+            {
+                'equipment': self.equipment.pk,
+                'usage_type': self.cleaning.pk,
+                'cleaning_type': 'A',
+                'remarks': '',
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'requires status')
+        self.assertFalse(ActivityLogEntry.objects.filter(equipment=self.equipment).exists())
+
+    def test_idle_equipment_can_start_cleaning_type_b(self):
+        # Idle (the default status) unlocks exactly one activity: Cleaning
+        # Type-B (product changeover) — this is the cycle's entry point.
+        self.assertEqual(self.equipment.state, EquipmentState.NOT_IN_USE)
+        response = self.client.post(
+            reverse('start_activity'),
+            {
+                'equipment': self.equipment.pk,
+                'usage_type': self.cleaning.pk,
+                'cleaning_type': 'B',
+                'remarks': '',
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.equipment.refresh_from_db()
+        self.assertEqual(self.equipment.state, EquipmentState.UNDER_CLEANING)
+
+    def test_process_on_reactor_forces_reaction_sub_type(self):
+        self.equipment.state = EquipmentState.CLEANED_AND_QA_CERTIFIED
+        self.equipment.save(update_fields=['state'])
+
+        response = self.client.post(
+            reverse('start_activity'),
+            {
+                'equipment': self.equipment.pk,
+                'usage_type': self.process.pk,
+                # Posting a sub-type is ignored for reactors — it's forced.
+                'process_sub_type': ProcessSubType.HOLDING,
+                'remarks': '',
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        entry = ActivityLogEntry.objects.get(equipment=self.equipment)
+        self.assertEqual(entry.process_sub_type, ProcessSubType.REACTION)
+        self.equipment.refresh_from_db()
+        self.assertEqual(self.equipment.state, EquipmentState.IN_PROCESS)
+
+    def test_process_on_non_reactor_requires_sub_type(self):
+        self.non_reactor_equipment.state = EquipmentState.CLEANED_AND_QA_CERTIFIED
+        self.non_reactor_equipment.save(update_fields=['state'])
+
+        response = self.client.post(
+            reverse('start_activity'),
+            {'equipment': self.non_reactor_equipment.pk, 'usage_type': self.process.pk, 'remarks': ''},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Select whether this is equipment use')
+
+        response = self.client.post(
+            reverse('start_activity'),
+            {
+                'equipment': self.non_reactor_equipment.pk,
+                'usage_type': self.process.pk,
+                'process_sub_type': ProcessSubType.OTHER_EQUIPMENT,
+                'remarks': '',
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.non_reactor_equipment.refresh_from_db()
+        self.assertEqual(self.non_reactor_equipment.state, EquipmentState.IN_USE)
+
+    def test_cleaning_qa_certification_sets_under_qa_certification(self):
+        self.equipment.state = EquipmentState.CLEANED_READY_FOR_QA
+        self.equipment.save(update_fields=['state'])
+
+        response = self.client.post(
+            reverse('start_activity'),
+            {
+                'equipment': self.equipment.pk,
+                'usage_type': self.cleaning.pk,
+                'cleaning_type': 'Q',
+                'remarks': '',
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.equipment.refresh_from_db()
+        self.assertEqual(self.equipment.state, EquipmentState.UNDER_QA_CERTIFICATION)
+
+    def test_maintenance_requires_type_and_both_kinds_set_under_maintenance(self):
+        self.equipment.state = EquipmentState.CLEANED_AFTER_MAINTENANCE
+        self.equipment.save(update_fields=['state'])
+
+        response = self.client.post(
+            reverse('start_activity'),
+            {'equipment': self.equipment.pk, 'usage_type': self.maintenance.pk, 'remarks': ''},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Select Breakdown / Repair or Preventive Maintenance')
+
+        response = self.client.post(
+            reverse('start_activity'),
+            {
+                'equipment': self.equipment.pk,
+                'usage_type': self.maintenance.pk,
+                'maintenance_type': MaintenanceType.BREAKDOWN,
+                'remarks': '',
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.equipment.refresh_from_db()
+        self.assertEqual(self.equipment.state, EquipmentState.UNDER_MAINTENANCE)
+
+
+class StopActivityViewTests(ActivityLogTestCase):
+    def setUp(self):
+        super().setUp()
+        self.client.login(username='op1', password='pw-test-12345')
+
+    def test_stop_activity_closes_entry_and_frees_equipment(self):
+        entry = self.make_entry(process_sub_type=ProcessSubType.REACTION)
+        self.equipment.state = EquipmentState.IN_PROCESS
+        self.equipment.save(update_fields=['state'])
+
+        response = self.client.post(reverse('stop_activity', args=[entry.pk]))
+        self.assertEqual(response.status_code, 302)
+
+        entry.refresh_from_db()
+        self.equipment.refresh_from_db()
+        self.assertFalse(entry.is_open)
+        self.assertEqual(entry.status, EntryStatus.COMPLETED)
+        self.assertEqual(self.equipment.state, EquipmentState.TO_BE_CLEANED)
+
+    def test_cannot_stop_an_already_closed_entry(self):
+        entry = self.make_entry(end_date='2026-01-02', end_time='10:00')
+        response = self.client.post(reverse('stop_activity', args=[entry.pk]), follow=True)
+        self.assertContains(response, 'already completed')
+
+    def test_stop_activity_without_sub_activity_data_is_blocked(self):
+        # An entry with no recorded sub-activity has no rule to resolve —
+        # stopping it must fail loudly rather than guess a status.
+        entry = self.make_entry()
+        response = self.client.post(reverse('stop_activity', args=[entry.pk]), follow=True)
+        self.assertContains(response, 'No activity rule is defined')
+        entry.refresh_from_db()
+        self.assertTrue(entry.is_open)
+
+
+class DashboardViewTests(ActivityLogTestCase):
+    def setUp(self):
+        super().setUp()
+        self.client.login(username='op1', password='pw-test-12345')
+
+    def test_dashboard_lists_equipment_for_selected_stream(self):
+        response = self.client.get(reverse('dashboard') + f'?stream={self.stream.pk}')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.equipment.code)
+
+    def test_dashboard_links_open_equipment_straight_to_stop(self):
+        entry = self.make_entry()
+        response = self.client.get(reverse('dashboard') + f'?stream={self.stream.pk}')
+        self.assertContains(response, reverse('stop_activity', args=[entry.pk]))

@@ -1,0 +1,214 @@
+:root {
+  --bg: #f5f6f8;
+  --panel: #fff;
+  --border: #d4d8de;
+  --text: #1c2126;
+  --muted: #6b7480;
+  --accent: #1a5fb4;
+  --warn: #b45309;
+  --danger: #b3261e;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.5 "Segoe UI", system-ui, sans-serif;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 12px 24px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand { font-weight: 700; text-decoration: none; color: var(--text); }
+.topbar nav { display: flex; gap: 16px; }
+.topbar nav a { color: var(--accent); text-decoration: none; }
+.topbar nav a:hover { text-decoration: underline; }
+.topbar .user { margin-left: auto; display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 14px; }
+
+main { padding: 24px; max-width: 1400px; }
+
+h1 { font-size: 22px; margin: 0 0 16px; }
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.card.narrow { max-width: 380px; }
+
+table.grid {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+table.grid th, table.grid td {
+  padding: 9px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+  vertical-align: top;
+}
+table.grid th { background: #eceff3; font-weight: 600; }
+table.grid tr:last-child td { border-bottom: none; }
+
+.filters { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; margin-bottom: 16px; }
+.filters p { margin: 0; display: flex; flex-direction: column; gap: 4px; }
+
+form p { margin: 0 0 12px; display: flex; flex-direction: column; gap: 4px; }
+form p[hidden] { display: none; }
+form label { font-weight: 600; font-size: 13px; }
+input, select, textarea {
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font: inherit;
+  background: #fff;
+}
+.helptext { color: var(--muted); font-size: 12px; }
+.helptext.error-text { color: var(--danger); display: block; }
+.helptext.error-text:empty { display: none; }
+form ul.errorlist { margin: 0; padding-left: 18px; color: var(--danger); font-size: 13px; }
+
+button, .btn {
+  padding: 7px 14px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+button.primary, .primary.btn { background: var(--accent); border-color: var(--accent); color: #fff; }
+button.link { border: none; background: none; color: var(--accent); padding: 0; }
+form.inline { display: inline-flex; gap: 6px; align-items: center; margin: 0; }
+
+.actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+.equipment-icon { vertical-align: -5px; margin-right: 6px; }
+
+.pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  background: #e6eaf0;
+}
+.pill.expired { background: #fbe3e1; color: var(--danger); }
+.pill.state-IN_USE,
+.pill.state-IN_PROCESS { background: #dbeafe; color: #1e40af; }
+.pill.state-TO_BE_PRESERVED { background: #e0f2fe; color: #075985; }
+.pill.state-UNDER_CLEANING,
+.pill.state-UNDER_QA_CERTIFICATION { background: #e0e7ff; color: #3730a3; }
+.pill.state-TO_BE_CLEANED { background: #fdf1d8; color: #8a5a00; }
+.pill.state-CLEANED_TYPE_A,
+.pill.state-CLEANED_READY_FOR_QA,
+.pill.state-CLEANED_AND_QA_CERTIFIED,
+.pill.state-CLEANED_AFTER_MAINTENANCE { background: #dcfce7; color: #166534; }
+.pill.state-UNDER_MAINTENANCE,
+.pill.state-UNDER_QUALIFICATION { background: #fef1dc; color: var(--warn); }
+.pill.state-NOT_IN_USE { background: #e6eaf0; color: var(--muted); }
+
+.muted { color: var(--muted); }
+
+/* ---- Equipment list icons (masters.equipment_list) ---------------------- */
+
+h2 { font-size: 16px; margin: 24px 0 12px; display: flex; align-items: center; gap: 8px; }
+h3 { font-size: 13px; font-weight: 600; color: var(--muted); margin: 14px 0 8px; text-transform: uppercase; letter-spacing: 0.02em; }
+
+.equipment-row-icon { display: block; }
+.equipment-row-icon-blank {
+  width: 28px;
+  height: 28px;
+  border: 1px dashed var(--border);
+  border-radius: 4px;
+}
+
+/* ---- Dashboard equipment grid (activitylog.dashboard) -------------------- */
+/* Status tokens are fixed and never themed; each pill ships with a label so
+   meaning never rests on colour alone. Sized tight enough that a full stream
+   fits on a 10" screen without scrolling. */
+
+.equipment-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.equipment-tile {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
+  color: var(--text);
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+.equipment-tile:hover {
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.equipment-tile-icon { display: block; width: 36px; height: 36px; }
+.equipment-tile-icon-blank {
+  width: 36px;
+  height: 36px;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+}
+.equipment-tile-code { font-weight: 600; font-size: 11px; }
+.equipment-tile-product { font-size: 10px; color: var(--muted); text-align: center; margin-top: -3px; }
+
+/* Dashboard page only — everything else keeps the roomier default spacing. */
+.dashboard-page main { padding: 14px 20px; }
+.dashboard-page h1 { font-size: 17px; margin: 0 0 8px; }
+.dashboard-page h2 { font-size: 13px; margin: 12px 0 6px; gap: 6px; }
+.dashboard-page .filters { margin-bottom: 8px; gap: 10px; }
+.dashboard-page .pill { font-size: 10px; padding: 1px 6px; }
+
+/* Tile face colour by equipment state — Process green, Cleaning yellow,
+   Maintenance red. Every other state keeps the neutral tile face; the pill
+   still carries the exact label so colour is never the only signal. */
+.equipment-tile.tile-IN_USE,
+.equipment-tile.tile-IN_PROCESS { background: #dcfce7; border-color: #16a34a; }
+.equipment-tile.tile-IN_USE:hover,
+.equipment-tile.tile-IN_PROCESS:hover { border-color: #15803d; }
+.equipment-tile.tile-UNDER_CLEANING { background: #fef9c3; border-color: #ca8a04; }
+.equipment-tile.tile-UNDER_CLEANING:hover { border-color: #a16207; }
+.equipment-tile.tile-UNDER_MAINTENANCE { background: #fee2e2; border-color: #dc2626; }
+.equipment-tile.tile-UNDER_MAINTENANCE:hover { border-color: #b91c1c; }
+
+.pill.expiring { background: #fdf1d8; color: #8a5a00; }
+
+.messages { list-style: none; padding: 0; margin: 0 0 16px; }
+.msg {
+  padding: 10px 14px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+}
+.msg.success { border-color: #86c396; background: #eaf6ed; }
+.msg.warning { border-color: #e0b264; background: #fdf3e2; }
+.msg.error { border-color: #e3a09a; background: #fbeceb; }
+
+dl.detail { display: grid; grid-template-columns: 300px 1fr; gap: 8px 20px; margin: 0; }
+dl.detail dt { font-weight: 600; font-size: 13px; color: var(--muted); }
+dl.detail dd { margin: 0; }

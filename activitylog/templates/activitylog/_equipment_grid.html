@@ -1,0 +1,16 @@
+{% load equipment_extras %}
+<div class="equipment-grid">
+  {% for row in rows %}
+    <a class="equipment-tile tile-{{ row.equipment.state }}" href="{{ row.action_url }}">
+      {% equipment_icon_url row.equipment.equipment_type.name as icon_url %}
+      {% if icon_url %}
+        <img src="{{ icon_url }}" class="equipment-tile-icon" alt="" width="40" height="40">
+      {% else %}
+        <span class="equipment-tile-icon-blank" aria-hidden="true"></span>
+      {% endif %}
+      <span class="equipment-tile-code">{{ row.equipment.code }}</span>
+      {% if row.product %}<span class="equipment-tile-product">{{ row.product }}</span>{% endif %}
+      <span class="pill state-{{ row.equipment.state }}">{{ row.equipment.get_state_display }}</span>
+    </a>
+  {% endfor %}
+</div>

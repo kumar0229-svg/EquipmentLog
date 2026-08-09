@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Complete Activity — {{ entry.equipment.code }}{% endblock %}
+
+{% block content %}
+<h1>Complete Activity — {{ entry.equipment.code }}</h1>
+<p class="muted">
+  {{ entry.usage_type.name }} started {{ entry.start_date|date:"d.m.Y" }} {{ entry.start_time|time:"H.i" }}
+  by {{ entry.start_by.username }}
+</p>
+<div class="card narrow">
+  <dl class="detail">
+    {% if entry.product %}<dt>Product</dt><dd>{{ entry.product }}</dd>{% endif %}
+    {% if entry.batch_no %}<dt>Batch No</dt><dd>{{ entry.batch_no }}</dd>{% endif %}
+    {% if entry.cleaning_sop_no %}<dt>Cleaning SOP No</dt><dd>{{ entry.cleaning_sop_no }}</dd>{% endif %}
+    {% if entry.cleaning_type %}<dt>Type of Cleaning</dt><dd>{{ entry.get_cleaning_type_display }}</dd>{% endif %}
+    {% if entry.equipment_maintenance_sop_no %}<dt>Maintenance SOP No</dt><dd>{{ entry.equipment_maintenance_sop_no }}</dd>{% endif %}
+    {% if entry.maintenance_frequency %}<dt>Frequency</dt><dd>{{ entry.get_maintenance_frequency_display }}</dd>{% endif %}
+    {% if entry.pm_process_order_no %}<dt>PM Process Order No</dt><dd>{{ entry.pm_process_order_no }}</dd>{% endif %}
+    {% if entry.qualification_protocol_no %}<dt>Qualification Protocol No</dt><dd>{{ entry.qualification_protocol_no }}</dd>{% endif %}
+    {% if entry.remarks %}<dt>Remarks</dt><dd>{{ entry.remarks|linebreaksbr }}</dd>{% endif %}
+  </dl>
+  <form method="post">
+    {% csrf_token %}
+    <button type="submit" class="primary">Complete activity</button>
+    <a class="btn" href="{% url 'dashboard' %}">Cancel</a>
+  </form>
+</div>
+{% endblock %}

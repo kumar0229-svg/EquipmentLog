@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load equipment_extras %}
+{% block title %}Equipment{% endblock %}
+
+{% block content %}
+<h1>Equipment</h1>
+<div class="card">
+  <table class="grid">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Code</th>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Area</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in equipment %}
+      <tr>
+        <td>
+          {% equipment_icon_url item.equipment_type.name as icon_url %}
+          {% if icon_url %}
+            <img src="{{ icon_url }}" class="equipment-row-icon" alt="" width="28" height="28">
+          {% else %}
+            <span class="equipment-row-icon-blank" aria-hidden="true"></span>
+          {% endif %}
+        </td>
+        <td>{{ item.code }}</td>
+        <td>{{ item.name }}</td>
+        <td>{{ item.equipment_type.name }}</td>
+        <td>{{ item.area.full_path }}</td>
+        <td><span class="pill state-{{ item.state }}">{{ item.get_state_display }}</span></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6">No equipment yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 240 240" fill="none">
+    <rect x="110" y="10" width="20" height="16" rx="2" style="stroke:oklch(30% 0.03 255);fill:oklch(97% 0.004 255);stroke-width:4"></rect>
+    <path d="M70,55 Q120,25 170,55" style="stroke:oklch(30% 0.03 255);fill:oklch(97% 0.004 255);stroke-width:5"></path>
+    <rect x="70" y="55" width="100" height="110" style="stroke:oklch(30% 0.03 255);fill:oklch(97% 0.004 255);stroke-width:5"></rect>
+    <path d="M70,165 Q120,195 170,165" style="stroke:oklch(30% 0.03 255);fill:oklch(97% 0.004 255);stroke-width:5"></path>
+    <rect x="170" y="92" width="14" height="10" style="stroke:oklch(30% 0.03 255);fill:oklch(97% 0.004 255);stroke-width:4"></rect>
+    <line x1="90" y1="185" x2="90" y2="222" style="stroke:oklch(30% 0.03 255);stroke-width:5;stroke-linecap:round"></line>
+    <line x1="150" y1="185" x2="150" y2="222" style="stroke:oklch(30% 0.03 255);stroke-width:5;stroke-linecap:round"></line>
+  </svg>

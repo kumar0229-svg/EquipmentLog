@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+{% block title %}Start Activity{% endblock %}
+
+{% block content %}
+<h1>Start Activity</h1>
+<div class="card">
+  <form method="post" id="start-activity-form">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+
+    <p>
+      {{ form.equipment.label_tag }}
+      {{ form.equipment }}
+      {{ form.equipment.errors }}
+      <span class="helptext" id="equipment-status-hint"></span>
+    </p>
+
+    <div id="equipment-busy-notice" class="card narrow" hidden>
+      <p id="equipment-busy-text"></p>
+      <a class="btn primary" id="equipment-busy-link" href="#">Complete activity</a>
+    </div>
+
+    <div id="start-fields">
+      <p>
+        {{ form.usage_type.label_tag }}
+        {{ form.usage_type }}
+        {{ form.usage_type.errors }}
+        <span class="helptext">Select equipment first, then Usage, to reveal the fields for this entry.</span>
+      </p>
+
+      <div id="usage-fields" hidden>
+        {% for field in form %}
+          {% if field.name != 'equipment' and field.name != 'usage_type' %}
+          <p data-field="{{ field.name }}">
+            {{ field.label_tag }}
+            {{ field }}
+            {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
+            {{ field.errors }}
+          </p>
+          {% endif %}
+        {% endfor %}
+      </div>
+
+      <button type="submit" class="primary">Start activity</button>
+      <a class="btn" href="{% url 'dashboard' %}">Cancel</a>
+    </div>
+  </form>
+</div>
+
+{{ usage_type_field_map|json_script:"usage-type-fields" }}
+{{ equipment_context_map|json_script:"equipment-context-map" }}
+<script>
+(function () {
+  var equipmentSelect = document.getElementById('id_equipment');
+  var usageSelect = document.getElementById('id_usage_type');
+  var container = document.getElementById('usage-fields');
+  var statusHint = document.getElementById('equipment-status-hint');
+  var busyNotice = document.getElementById('equipment-busy-notice');
+  var busyText = document.getElementById('equipment-busy-text');
+  var busyLink = document.getElementById('equipment-busy-link');
+  var startFields = document.getElementById('start-fields');
+  var fieldMap = JSON.parse(document.getElementById('usage-type-fields').textContent);
+  var equipmentMap = JSON.parse(document.getElementById('equipment-context-map').textContent);
+  var maintenanceTypeSelect = document.getElementById('id_maintenance_type');
+  var cleaningTypeSelect = document.getElementById('id_cleaning_type');
+
+  // Which form field carries a usage type's sub-activity choice — used to
+  // narrow that field's <option>s to what's actually startable from the
+  // selected equipment's current status. Qualification has no sub-activity
+  // field (its rule code is implicit), so it's gated at the Usage Type level
+  // only.
+  var SUB_ACTIVITY_FIELD = {
+    'Process': 'process_sub_type',
+    'Cleaning': 'cleaning_type',
+    'Maintenance': 'maintenance_type',
+  };
+
+  function usageTypeName() {
+    var option = usageSelect.options[usageSelect.selectedIndex];
+    return option ? option.text : '';
+  }
+
+  // Narrows the Usage Type select to only usage types startable from the
+  // selected equipment's current status (per equipment.next_actions, built
+  // server-side from rules.next_actions_for_state), then narrows the chosen
+  // usage type's sub-activity select the same way.
+  function applyNextActionFilter() {
+    var equipment = equipmentMap[equipmentSelect.value];
+    var allowedUsageTypeIds = null;
+    if (equipment) {
+      allowedUsageTypeIds = {};
+      for (var i = 0; i < equipment.next_actions.length; i++) {
+        allowedUsageTypeIds[equipment.next_actions[i].usage_type_id] = true;
+      }
+    }
+
+    for (var j = 0; j < usageSelect.options.length; j++) {
+      var opt = usageSelect.options[j];
+      if (!opt.value) continue;
+      var allowed = !allowedUsageTypeIds || allowedUsageTypeIds[opt.value];
+      opt.hidden = !allowed;
+      opt.disabled = !allowed;
+    }
+    if (usageSelect.value && allowedUsageTypeIds && !allowedUsageTypeIds[usageSelect.value]) {
+      usageSelect.value = '';
+    }
+
+    var subField = SUB_ACTIVITY_FIELD[usageTypeName()];
+    var subSelect = subField && document.getElementById('id_' + subField);
+    if (subSelect) {
+      var codes = null;
+      if (equipment) {
+        codes = [];
+        for (var k = 0; k < equipment.next_actions.length; k++) {
+          var action = equipment.next_actions[k];
+          if (action.usage_type_id === usageSelect.value) codes.push(action.code);
+        }
+      }
+      for (var m = 0; m < subSelect.options.length; m++) {
+        var subOpt = subSelect.options[m];
+        if (!subOpt.value) continue;
+        var subAllowed = !codes || codes.indexOf(subOpt.value) !== -1;
+        subOpt.hidden = !subAllowed;
+        subOpt.disabled = !subAllowed;
+      }
+      if (subSelect.value && codes && codes.indexOf(subSelect.value) === -1) {
+        subSelect.value = '';
+      }
+    }
+  }
+
+  function applyVisibility() {
+    var usageId = usageSelect.value;
+    if (!usageId) {
+      container.hidden = true;
+      return;
+    }
+    container.hidden = false;
+    var allowed = fieldMap[usageId];
+    var equipment = equipmentMap[equipmentSelect.value];
+    var name = usageTypeName();
+    var rows = container.querySelectorAll('[data-field]');
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i];
+      var field = row.dataset.field;
+      // No mapping configured yet for this usage type -> show every field.
+      var hidden = !!allowed && allowed.indexOf(field) === -1;
+
+      // process_sub_type only applies to non-reactor equipment on Process —
+      // reactors get their sub-activity ("Reaction") assigned automatically.
+      if (field === 'process_sub_type') {
+        hidden = hidden || name !== 'Process' || !equipment || equipment.is_reactor;
+      }
+
+      // Frequency / PM order number only apply to Preventive Maintenance.
+      if (field === 'maintenance_frequency' || field === 'pm_process_order_no') {
+        var isPreventive = maintenanceTypeSelect && maintenanceTypeSelect.value === 'PREVENTIVE';
+        hidden = hidden || name !== 'Maintenance' || !isPreventive;
+      }
+
+      // Batch No / Cleaning SOP No aren't asked for QA Certification cleanings.
+      if (field === 'batch_no' || field === 'cleaning_sop_no') {
+        var isQaCertification = cleaningTypeSelect && cleaningTypeSelect.value === 'Q';
+        hidden = hidden || (name === 'Cleaning' && isQaCertification);
+      }
+
+      row.hidden = hidden;
+    }
+  }
+
+  function applyStatusHint() {
+    var equipment = equipmentMap[equipmentSelect.value];
+    statusHint.textContent = equipment ? 'Current status: ' + equipment.state_label : '';
+  }
+
+  function applyBusyNotice() {
+    var equipment = equipmentMap[equipmentSelect.value];
+    var busyUrl = equipment && equipment.open_entry_url;
+    var busyNoEntry = equipment && equipment.busy_no_entry;
+    busyNotice.hidden = !busyUrl && !busyNoEntry;
+    startFields.hidden = !!busyUrl || !!busyNoEntry;
+    busyLink.hidden = !busyUrl;
+    if (busyUrl) {
+      busyText.textContent = (
+        equipment.code + ' already has an activity in progress (currently "' + equipment.state_label +
+        '"). Complete it before starting a new one.'
+      );
+      busyLink.href = busyUrl;
+    } else if (busyNoEntry) {
+      busyText.textContent = (
+        equipment.code + ' shows as "' + equipment.state_label + '" but has no linked activity. ' +
+        'Ask an admin or engineer to correct its status before starting a new activity.'
+      );
+    }
+  }
+
+  usageSelect.addEventListener('change', function () {
+    applyNextActionFilter();
+    applyVisibility();
+  });
+  equipmentSelect.addEventListener('change', function () {
+    applyBusyNotice();
+    applyStatusHint();
+    applyNextActionFilter();
+    applyVisibility();
+  });
+  if (maintenanceTypeSelect) {
+    maintenanceTypeSelect.addEventListener('change', applyVisibility);
+  }
+  if (cleaningTypeSelect) {
+    cleaningTypeSelect.addEventListener('change', applyVisibility);
+  }
+
+  applyBusyNotice();
+  applyStatusHint();
+  applyNextActionFilter();
+  applyVisibility();
+})();
+</script>
+{% endblock %}
