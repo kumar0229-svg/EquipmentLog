@@ -1,0 +1,21 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} | {{ site_title|default:"DigiLog" }}{% endblock %}
+
+{% block extrastyle %}{{ block.super }}
+<link rel="icon" type="image/svg+xml" href="{% static 'img/cipla-logo.svg' %}">
+<style>
+  #site-name a.brand { display: flex; align-items: center; gap: 10px; }
+  #site-name .brand-logo { height: 24px; width: auto; }
+</style>
+{% endblock %}
+
+{% block branding %}
+<div id="site-name">
+  <a href="{% url 'admin:index' %}" class="brand">
+    <img src="{% static 'img/cipla-logo.svg' %}" alt="Cipla" class="brand-logo">
+    <span>{{ site_header|default:"DigiLog Administration" }}</span>
+  </a>
+</div>
+{% endblock %}
