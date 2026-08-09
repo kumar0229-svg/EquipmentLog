@@ -89,24 +89,24 @@ ACTIVITY_RULES = {
         'QA Certification',
         EquipmentState.UNDER_QA_CERTIFICATION,
         EquipmentState.CLEANED_AND_QA_CERTIFIED,
-        frozenset({EquipmentState.CLEANED_READY_FOR_QA}),
+        frozenset({EquipmentState.CLEANED_READY_FOR_QA, EquipmentState.CLEANED_AFTER_MAINTENANCE}),
     ),
     ('Cleaning', 'G'): ActivityRule(
         'Type-G (After Maintenance)',
         EquipmentState.UNDER_CLEANING,
         EquipmentState.CLEANED_AFTER_MAINTENANCE,
-        frozenset({EquipmentState.UNDER_MAINTENANCE}),
+        frozenset({EquipmentState.TO_BE_CLEANED_AFTER_MAINTENANCE, EquipmentState.TO_BE_CLEANED}),
     ),
     ('Maintenance', BREAKDOWN): ActivityRule(
         'Breakdown / Repair',
         EquipmentState.UNDER_MAINTENANCE,
-        EquipmentState.TO_BE_CLEANED,
+        EquipmentState.TO_BE_CLEANED_AFTER_MAINTENANCE,
         _MAINTENANCE_PRIOR,
     ),
     ('Maintenance', PREVENTIVE): ActivityRule(
         'Preventive Maintenance',
         EquipmentState.UNDER_MAINTENANCE,
-        EquipmentState.TO_BE_CLEANED,
+        EquipmentState.TO_BE_CLEANED_AFTER_MAINTENANCE,
         _MAINTENANCE_PRIOR,
     ),
     ('Qualification', QUALIFICATION): ActivityRule(

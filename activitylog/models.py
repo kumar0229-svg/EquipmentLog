@@ -123,3 +123,20 @@ class ActivityLogEntry(models.Model):
     @property
     def is_open(self):
         return self.end_date is None
+
+    @property
+    def equipment_status_at_entry(self):
+        """The equipment status this entry represents at its own point in
+        time — the rule's during-state while it's open, its after-state once
+        completed. Not the equipment's *current* status, which may have moved
+        on through later entries. None if no rule resolves (e.g. a legacy
+        entry with no sub-activity recorded).
+        """
+        from masters.models import EquipmentState
+
+        from . import rules
+
+        rule = rules.get_rule_for_entry(self)
+        if rule is None:
+            return None
+        return EquipmentState(rule.during_state if self.is_open else rule.after_state)

@@ -132,6 +132,26 @@ class StartActivityViewTests(ActivityLogTestCase):
         self.equipment.refresh_from_db()
         self.assertEqual(self.equipment.state, EquipmentState.UNDER_CLEANING)
 
+    def test_type_g_cleaning_also_allowed_from_plain_to_be_cleaned(self):
+        # Type G isn't limited to the post-maintenance status — it's offered
+        # any time equipment is generically "To Be Cleaned" (e.g. after
+        # Qualification or Process), not just after Maintenance.
+        self.equipment.state = EquipmentState.TO_BE_CLEANED
+        self.equipment.save(update_fields=['state'])
+
+        response = self.client.post(
+            reverse('start_activity'),
+            {
+                'equipment': self.equipment.pk,
+                'usage_type': self.cleaning.pk,
+                'cleaning_type': 'G',
+                'remarks': '',
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.equipment.refresh_from_db()
+        self.assertEqual(self.equipment.state, EquipmentState.UNDER_CLEANING)
+
     def test_process_on_reactor_forces_reaction_sub_type(self):
         self.equipment.state = EquipmentState.CLEANED_AND_QA_CERTIFIED
         self.equipment.save(update_fields=['state'])
@@ -178,6 +198,66 @@ class StartActivityViewTests(ActivityLogTestCase):
 
     def test_cleaning_qa_certification_sets_under_qa_certification(self):
         self.equipment.state = EquipmentState.CLEANED_READY_FOR_QA
+        self.equipment.save(update_fields=['state'])
+
+        response = self.client.post(
+            reverse('start_activity'),
+            {
+                'equipment': self.equipment.pk,
+                'usage_type': self.cleaning.pk,
+                'cleaning_type': 'Q',
+                'remarks': '',
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.equipment.refresh_from_db()
+        self.assertEqual(self.equipment.state, EquipmentState.UNDER_QA_CERTIFICATION)
+
+    def test_maintenance_completion_only_unlocks_cleaning_type_g(self):
+        self.equipment.state = EquipmentState.UNDER_MAINTENANCE
+        self.equipment.save(update_fields=['state'])
+        entry = self.make_entry(
+            usage_type=self.maintenance, maintenance_type=MaintenanceType.BREAKDOWN,
+        )
+
+        response = self.client.post(reverse('stop_activity', args=[entry.pk]))
+        self.assertEqual(response.status_code, 302)
+        self.equipment.refresh_from_db()
+        self.assertEqual(
+            self.equipment.state, EquipmentState.TO_BE_CLEANED_AFTER_MAINTENANCE
+        )
+
+        # Type A is not offered post-maintenance — only Type G is.
+        response = self.client.post(
+            reverse('start_activity'),
+            {
+                'equipment': self.equipment.pk,
+                'usage_type': self.cleaning.pk,
+                'cleaning_type': 'A',
+                'remarks': '',
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'requires status')
+
+        response = self.client.post(
+            reverse('start_activity'),
+            {
+                'equipment': self.equipment.pk,
+                'usage_type': self.cleaning.pk,
+                'cleaning_type': 'G',
+                'remarks': '',
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.equipment.refresh_from_db()
+        self.assertEqual(self.equipment.state, EquipmentState.UNDER_CLEANING)
+
+    def test_qa_certification_also_allowed_from_cleaned_after_maintenance(self):
+        # Per the Activity rules table, QA Certification's prior status can be
+        # either "Cleaned and ready for QA certification" (the normal Type-B
+        # path) or "Cleaned after maintenance" (post Type-G cleaning).
+        self.equipment.state = EquipmentState.CLEANED_AFTER_MAINTENANCE
         self.equipment.save(update_fields=['state'])
 
         response = self.client.post(

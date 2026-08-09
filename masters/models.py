@@ -65,6 +65,9 @@ class EquipmentState(models.TextChoices):
     TO_BE_PRESERVED = 'TO_BE_PRESERVED', 'To Be Preserved'
     UNDER_CLEANING = 'UNDER_CLEANING', 'Under Cleaning'
     TO_BE_CLEANED = 'TO_BE_CLEANED', 'To Be Cleaned'
+    TO_BE_CLEANED_AFTER_MAINTENANCE = (
+        'TO_BE_CLEANED_AFTER_MAINTENANCE', 'To Be Cleaned (After Maintenance)'
+    )
     CLEANED_TYPE_A = 'CLEANED_TYPE_A', 'Cleaned Type A'
     CLEANED_READY_FOR_QA = 'CLEANED_READY_FOR_QA', 'Cleaned and Ready for QA Certification'
     UNDER_QA_CERTIFICATION = 'UNDER_QA_CERTIFICATION', 'Under QA Certification'
@@ -83,7 +86,7 @@ class Equipment(models.Model):
     area = models.ForeignKey(Area, on_delete=models.PROTECT, related_name='equipment')
     is_movable = models.BooleanField(default=False)
     state = models.CharField(
-        max_length=30, choices=EquipmentState.choices, default=EquipmentState.NOT_IN_USE
+        max_length=32, choices=EquipmentState.choices, default=EquipmentState.NOT_IN_USE
     )
     active = models.BooleanField(default=True)
 
