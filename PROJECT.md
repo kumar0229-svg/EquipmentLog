@@ -37,10 +37,19 @@ host and runs:
 ```bash
 cd /home/ubuntu/EquipmentLog
 git pull origin main
+source .venv/bin/activate
+pip install -r requirements.txt
+python manage.py migrate --noinput
+python manage.py collectstatic --noinput
+deactivate
+sudo systemctl restart equipmentlog
 ```
 
-That's the entire automated step — see [What the pipeline doesn't do](#what-the-pipeline-doesnt-do)
-below for what still has to happen manually after that.
+So a push to `main` fully deploys itself: code, dependencies, migrations, static files, and a
+gunicorn restart, with no manual step on the box afterward. This requires the box's `.venv` to
+already exist at `/home/ubuntu/EquipmentLog/.venv`, a systemd service named `equipmentlog`
+running gunicorn, and the SSH user to have passwordless `sudo` for `systemctl restart
+equipmentlog` (see [First-time EC2 box setup](#first-time-ec2-box-setup-one-time-manual)).
 
 The SSH connection uses three **GitHub Actions repository secrets** (Settings → Secrets and
 variables → Actions), not anything in this repo:
@@ -51,30 +60,23 @@ variables → Actions), not anything in this repo:
 | `EC2_SSH_USER` | The SSH login user (e.g. `ubuntu`) |
 | `EC2_SSH_KEY` | The private key for that user, PEM format |
 
-## What the pipeline doesn't do
-
-`git pull` is all the workflow runs. It does **not**:
-
-- `pip install -r requirements.txt` — needed after any dependency change
-- `python manage.py migrate` — needed after any model change
-- `python manage.py collectstatic` — needed after any static asset change
-- restart the gunicorn process/service
-
-Any deploy that touches those has to be finished by hand on the box (or the workflow extended
-to cover them) — pushing to `main` alone won't pick them up.
-
 ## First-time EC2 box setup (one-time, manual)
 
 1. Provision the instance; install Python 3.12+, PostgreSQL client libraries, and git.
 2. `git clone` this repo to `/home/ubuntu/EquipmentLog`.
-3. Create a venv and `pip install -r requirements.txt`.
+3. Create a venv at `.venv` (must be this exact path — the deploy workflow activates it by
+   name) and `pip install -r requirements.txt`.
 4. Create `.env` from `.env.example` with real production values (see above).
 5. `python manage.py migrate`, `seed_masters`, `createsuperuser`, `collectstatic`.
-6. Run gunicorn as a long-lived service (e.g. a systemd unit) and point a reverse proxy at it.
-7. Add `EC2_HOST` / `EC2_SSH_USER` / `EC2_SSH_KEY` as GitHub Actions secrets so future pushes
+6. Run gunicorn as a systemd service named `equipmentlog` (must be this exact name — the deploy
+   workflow restarts it by name) and point a reverse proxy at it.
+7. Grant the deploy SSH user passwordless `sudo` for `systemctl restart equipmentlog` only
+   (e.g. a `visudo` entry scoped to that one command), so the workflow can restart gunicorn
+   without a broader sudo grant.
+8. Add `EC2_HOST` / `EC2_SSH_USER` / `EC2_SSH_KEY` as GitHub Actions secrets so future pushes
    can reach the box (see CI/CD above).
 
-None of steps 4–7 are captured in this repo, since they're either secrets or host-specific
+None of steps 4–8 are captured in this repo, since they're either secrets or host-specific
 service configuration — this list exists so the setup can be reproduced on a replacement
 instance, not to store the values themselves.
 
