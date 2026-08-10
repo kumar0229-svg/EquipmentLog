@@ -35,9 +35,10 @@ Triggers on every push to `main`, or manually via `workflow_dispatch`. It SSHes 
 host and runs:
 
 ```bash
+set -euo pipefail
 cd /home/ubuntu/EquipmentLog
 git pull origin main
-source .venv/bin/activate
+source venv/bin/activate
 pip install -r requirements.txt
 python manage.py migrate --noinput
 python manage.py collectstatic --noinput
@@ -46,10 +47,13 @@ sudo systemctl restart equipmentlog
 ```
 
 So a push to `main` fully deploys itself: code, dependencies, migrations, static files, and a
-gunicorn restart, with no manual step on the box afterward. This requires the box's `.venv` to
-already exist at `/home/ubuntu/EquipmentLog/.venv`, a systemd service named `equipmentlog`
-running gunicorn, and the SSH user to have passwordless `sudo` for `systemctl restart
-equipmentlog` (see [First-time EC2 box setup](#first-time-ec2-box-setup-one-time-manual)).
+gunicorn restart, with no manual step on the box afterward. `set -euo pipefail` is load-bearing —
+without it, a failed step (e.g. a missing venv) is silently swallowed as long as the final
+`systemctl restart` succeeds, and the workflow reports green despite nothing having actually
+deployed. This requires the box's venv to already exist at `/home/ubuntu/EquipmentLog/venv`, a
+systemd service named `equipmentlog` running gunicorn, and the SSH user to have passwordless
+`sudo` for `systemctl restart equipmentlog` (see [First-time EC2 box
+setup](#first-time-ec2-box-setup-one-time-manual)).
 
 The SSH connection uses three **GitHub Actions repository secrets** (Settings → Secrets and
 variables → Actions), not anything in this repo:
@@ -64,8 +68,9 @@ variables → Actions), not anything in this repo:
 
 1. Provision the instance; install Python 3.12+, PostgreSQL client libraries, and git.
 2. `git clone` this repo to `/home/ubuntu/EquipmentLog`.
-3. Create a venv at `.venv` (must be this exact path — the deploy workflow activates it by
-   name) and `pip install -r requirements.txt`.
+3. Create a venv at `venv` (must be this exact path — the deploy workflow activates it by
+   name, and the systemd unit's `ExecStart` points at `venv/bin/gunicorn`) and
+   `pip install -r requirements.txt`.
 4. Create `.env` from `.env.example` with real production values (see above).
 5. `python manage.py migrate`, `seed_masters`, `createsuperuser`, `collectstatic`.
 6. Run gunicorn as a systemd service named `equipmentlog` (must be this exact name — the deploy
