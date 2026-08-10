@@ -3,7 +3,10 @@ from django.test import TestCase
 from django.urls import reverse
 
 from accounts.models import Role
-from masters.models import Area, AreaType, Equipment, EquipmentState, EquipmentType, EquipmentUsageType
+from masters.models import (
+    Area, AreaType, Equipment, EquipmentState, EquipmentType, EquipmentUsageType, Product,
+    ProductEquipment,
+)
 
 from .models import ActivityLogEntry, EntryStatus, MaintenanceType, ProcessSubType
 
@@ -195,6 +198,64 @@ class StartActivityViewTests(ActivityLogTestCase):
         self.assertEqual(response.status_code, 302)
         self.non_reactor_equipment.refresh_from_db()
         self.assertEqual(self.non_reactor_equipment.state, EquipmentState.IN_USE)
+
+    def test_process_product_must_be_mapped_to_equipment_when_mappings_exist(self):
+        self.equipment.state = EquipmentState.CLEANED_AND_QA_CERTIFIED
+        self.equipment.save(update_fields=['state'])
+        mapped_product = Product.objects.create(name='Product-Mapped')
+        other_product = Product.objects.create(name='Product-Other')
+        ProductEquipment.objects.create(product=mapped_product, equipment=self.equipment)
+
+        response = self.client.post(
+            reverse('start_activity'),
+            {
+                'equipment': self.equipment.pk,
+                'usage_type': self.process.pk,
+                'product': other_product.pk,
+                'remarks': '',
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'is not mapped to')
+        self.assertFalse(ActivityLogEntry.objects.filter(equipment=self.equipment).exists())
+
+    def test_process_product_mapped_to_equipment_is_accepted(self):
+        self.equipment.state = EquipmentState.CLEANED_AND_QA_CERTIFIED
+        self.equipment.save(update_fields=['state'])
+        mapped_product = Product.objects.create(name='Product-Mapped')
+        ProductEquipment.objects.create(product=mapped_product, equipment=self.equipment)
+
+        response = self.client.post(
+            reverse('start_activity'),
+            {
+                'equipment': self.equipment.pk,
+                'usage_type': self.process.pk,
+                'product': mapped_product.pk,
+                'remarks': '',
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        entry = ActivityLogEntry.objects.get(equipment=self.equipment)
+        self.assertEqual(entry.product, mapped_product)
+
+    def test_process_product_unrestricted_when_no_mappings_configured(self):
+        # No ProductEquipment rows exist for this equipment at all, so the
+        # product picker isn't gated yet — same "not configured" leniency as
+        # usage_type_field_map.
+        self.equipment.state = EquipmentState.CLEANED_AND_QA_CERTIFIED
+        self.equipment.save(update_fields=['state'])
+        product = Product.objects.create(name='Product-Unmapped')
+
+        response = self.client.post(
+            reverse('start_activity'),
+            {
+                'equipment': self.equipment.pk,
+                'usage_type': self.process.pk,
+                'product': product.pk,
+                'remarks': '',
+            },
+        )
+        self.assertEqual(response.status_code, 302)
 
     def test_cleaning_qa_certification_sets_under_qa_certification(self):
         self.equipment.state = EquipmentState.CLEANED_READY_FOR_QA

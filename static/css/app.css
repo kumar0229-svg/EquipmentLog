@@ -154,7 +154,7 @@ h3 { font-size: 13px; font-weight: 600; color: var(--muted); margin: 14px 0 8px;
 
 .equipment-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 8px;
   margin-bottom: 6px;
 }
@@ -164,9 +164,9 @@ h3 { font-size: 13px; font-weight: 600; color: var(--muted); margin: 14px 0 8px;
   border-radius: 6px;
   padding: 8px 6px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
   text-decoration: none;
   color: var(--text);
   transition: box-shadow 0.15s, border-color 0.15s;
@@ -175,15 +175,22 @@ h3 { font-size: 13px; font-weight: 600; color: var(--muted); margin: 14px 0 8px;
   border-color: var(--accent);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
-.equipment-tile-icon { display: block; width: 36px; height: 36px; }
+.equipment-tile-icon { display: block; width: 36px; height: 36px; flex-shrink: 0; }
 .equipment-tile-icon-blank {
   width: 36px;
   height: 36px;
+  flex-shrink: 0;
   border: 1px dashed var(--border);
   border-radius: 6px;
 }
+.equipment-tile-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
 .equipment-tile-code { font-weight: 600; font-size: 11px; }
-.equipment-tile-product { font-size: 10px; color: var(--muted); text-align: center; margin-top: -3px; }
+.equipment-tile-product { font-size: 10px; color: var(--muted); text-align: left; margin-top: -3px; }
 
 /* Dashboard page only — everything else keeps the roomier default spacing. */
 .dashboard-page main { padding: 14px 20px; }
@@ -192,16 +199,15 @@ h3 { font-size: 13px; font-weight: 600; color: var(--muted); margin: 14px 0 8px;
 .dashboard-page .filters { margin-bottom: 8px; gap: 10px; }
 .dashboard-page .pill { font-size: 10px; padding: 1px 6px; }
 
-/* Tile face colour by equipment state — Process green, Cleaning yellow,
-   Maintenance red. Every other state keeps the neutral tile face; the pill
-   still carries the exact label so colour is never the only signal. */
+/* Tile face stays white for every state — the pill carries the status
+   label and colour instead, so the tile itself is never the only signal. */
 .equipment-tile.tile-IN_USE,
-.equipment-tile.tile-IN_PROCESS { background: #dcfce7; border-color: #16a34a; }
+.equipment-tile.tile-IN_PROCESS { border-color: #16a34a; }
 .equipment-tile.tile-IN_USE:hover,
 .equipment-tile.tile-IN_PROCESS:hover { border-color: #15803d; }
-.equipment-tile.tile-UNDER_CLEANING { background: #fef9c3; border-color: #ca8a04; }
+.equipment-tile.tile-UNDER_CLEANING { border-color: #ca8a04; }
 .equipment-tile.tile-UNDER_CLEANING:hover { border-color: #a16207; }
-.equipment-tile.tile-UNDER_MAINTENANCE { background: #fee2e2; border-color: #dc2626; }
+.equipment-tile.tile-UNDER_MAINTENANCE { border-color: #dc2626; }
 .equipment-tile.tile-UNDER_MAINTENANCE:hover { border-color: #b91c1c; }
 
 .pill.expiring { background: #fdf1d8; color: #8a5a00; }

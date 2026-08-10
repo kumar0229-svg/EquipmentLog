@@ -1,7 +1,7 @@
 from django import forms
 from django.urls import reverse
 
-from masters.models import Equipment, EquipmentState, EquipmentUsageType, Product
+from masters.models import Equipment, EquipmentState, EquipmentUsageType, Product, ProductEquipment
 
 from . import rules
 from .models import ActivityLogEntry, CleaningType, MaintenanceType, ProcessSubType
@@ -41,7 +41,7 @@ def usage_type_field_map():
 
 def equipment_context_map():
     """{equipment_id (str): {"code", "state", "state_label", "open_entry_url",
-    "busy_no_entry", "next_actions"}}.
+    "busy_no_entry", "next_actions", "products"}}.
 
     Feeds the Start Activity page's JS so it can show the equipment's current
     status next to the picker, steer straight to stopping it if an activity is
@@ -50,12 +50,23 @@ def equipment_context_map():
     data-inconsistency case: equipment showing a mid-activity status
     (rules.DURING_STATES) with no open entry to link to (state was set some
     other way, e.g. directly in admin).
+
+    "products" is {product_id (str): procedure_no} from the product's master
+    ProductEquipment mapping — an empty dict means no mapping has been
+    configured for this equipment yet, in which case the Process product
+    picker is left unrestricted (same "no mapping yet" convention as
+    usage_type_field_map).
     """
     open_entry_by_equipment = dict(
         ActivityLogEntry.objects.filter(equipment__active=True, end_date__isnull=True)
         .values_list('equipment_id', 'pk')
     )
     usage_type_ids = dict(EquipmentUsageType.objects.filter(active=True).values_list('name', 'id'))
+    products_by_equipment = {}
+    for equipment_id, product_id, procedure_no in ProductEquipment.objects.filter(
+        equipment__active=True, product__active=True
+    ).values_list('equipment_id', 'product_id', 'procedure_no'):
+        products_by_equipment.setdefault(equipment_id, {})[str(product_id)] = procedure_no
     return {
         str(e.id): {
             'code': e.code,
@@ -75,6 +86,7 @@ def equipment_context_map():
                 for usage_type_name, code, rule in rules.next_actions_for_state(e.state)
                 if usage_type_name in usage_type_ids
             ],
+            'products': products_by_equipment.get(e.id, {}),
         }
         for e in Equipment.objects.filter(active=True).select_related('equipment_type')
     }
@@ -144,6 +156,11 @@ class StartActivityForm(forms.ModelForm):
                     'process_sub_type',
                     'Select whether this is equipment use or holding of mother liquor / distilled solvent.',
                 )
+            product = cleaned.get('product')
+            if product:
+                mapped = equipment.product_links.all()
+                if mapped.exists() and not mapped.filter(product=product).exists():
+                    self.add_error('product', f'{product.name} is not mapped to {equipment.code}.')
         elif usage_type_name == 'Cleaning':
             if not cleaned.get('cleaning_type'):
                 self.add_error('cleaning_type', 'Select a type of cleaning.')

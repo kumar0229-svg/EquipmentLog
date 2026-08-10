@@ -100,6 +100,16 @@ class Equipment(models.Model):
 
 class Product(models.Model):
     name = models.CharField(max_length=150, unique=True)
+    streams = models.ManyToManyField(
+        Area,
+        blank=True,
+        related_name='products',
+        limit_choices_to={'area_type': AreaType.STREAM},
+        help_text='Streams this product is manufactured in.',
+    )
+    equipment = models.ManyToManyField(
+        Equipment, through='ProductEquipment', blank=True, related_name='products',
+    )
     active = models.BooleanField(default=True)
 
     class Meta:
@@ -107,5 +117,26 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class ProductEquipment(models.Model):
+    """Which equipment a product may run on, and the procedure it runs under there.
+
+    Start Activity only offers an equipment's Process product choices from
+    this mapping (masters.forms/views equipment_context_map) — an equipment
+    with no rows here is left unrestricted rather than blocked, matching how
+    unconfigured usage-type field maps behave elsewhere in the app.
+    """
+
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='equipment_links')
+    equipment = models.ForeignKey(Equipment, on_delete=models.CASCADE, related_name='product_links')
+    procedure_no = models.CharField('Procedure No', max_length=100, blank=True)
+
+    class Meta:
+        ordering = ['product__name', 'equipment__code']
+        unique_together = [('product', 'equipment')]
+
+    def __str__(self):
+        return f'{self.product.name} on {self.equipment.code}'
 
 

@@ -6,6 +6,7 @@ from .models import (
     EquipmentType,
     EquipmentUsageType,
     Product,
+    ProductEquipment,
 )
 
 
@@ -69,8 +70,15 @@ class EquipmentAdmin(AdminOnlyMixin, admin.ModelAdmin):
     search_fields = ['code', 'name']
 
 
+class ProductEquipmentInline(admin.TabularInline):
+    model = ProductEquipment
+    extra = 1
+
+
 @admin.register(Product)
 class ProductAdmin(AdminOnlyMixin, admin.ModelAdmin):
     list_display = ['name', 'active']
-    list_filter = ['active']
+    list_filter = ['active', 'streams']
     search_fields = ['name']
+    filter_horizontal = ['streams']
+    inlines = [ProductEquipmentInline]
