@@ -37,13 +37,15 @@ body {
   border: 1px solid var(--border);
   border-radius: 10px;
 }
-.topbar nav { display: flex; flex-direction: column; gap: 6px; }
-.topbar nav .nav-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.topbar nav { display: flex; flex-direction: column; gap: 4px; flex: 1 1 auto; min-width: 0; }
+.topbar nav .nav-row { display: flex; align-items: center; gap: 4px; flex-wrap: nowrap; }
 .topbar nav a {
   color: var(--accent);
   font-weight: 700;
+  font-size: 10px;
   text-decoration: none;
-  padding: 6px 14px;
+  padding: 4px 7px;
+  white-space: nowrap;
   border: 1px solid var(--border);
   border-radius: 999px;
   transition: background-color 150ms ease, border-color 150ms ease, transform 150ms ease, box-shadow 150ms ease;
