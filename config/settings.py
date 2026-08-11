@@ -24,8 +24,19 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django_htmx',
     'accounts',
+    'core',
     'masters',
     'activitylog',
+    'bmr_log',
+    'cleaning_record_log',
+    'qualification_protocol_log',
+    'vmp_schedule',
+    'line_clearance_log',
+    'qa_review_sheet',
+    'error_ratification_log',
+    'data_entry_error_log',
+    'csv_numbering_log',
+    'alarm_impact_assessment_log',
 ]
 
 MIDDLEWARE = [
@@ -51,6 +62,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'core.context_processors.nav_section',
             ],
         },
     },
@@ -90,5 +102,5 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'dashboard'
+LOGIN_REDIRECT_URL = 'main_menu'
 LOGOUT_REDIRECT_URL = 'login'

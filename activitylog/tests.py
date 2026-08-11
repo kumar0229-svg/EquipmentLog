@@ -29,9 +29,13 @@ class ActivityLogTestCase(TestCase):
         self.non_reactor_equipment = Equipment.objects.create(
             code='CF-101', equipment_type=self.non_reactor_type, area=self.location
         )
-        self.process = EquipmentUsageType.objects.create(name='Process')
-        self.cleaning = EquipmentUsageType.objects.create(name='Cleaning')
-        self.maintenance = EquipmentUsageType.objects.create(name='Maintenance')
+        # get_or_create, not create: activitylog.0005_seed_activity_rules now
+        # seeds these same usage types as a side effect of seeding
+        # ActivityRuleConfig rows, so a freshly migrated test database
+        # already has them.
+        self.process = EquipmentUsageType.objects.get_or_create(name='Process')[0]
+        self.cleaning = EquipmentUsageType.objects.get_or_create(name='Cleaning')[0]
+        self.maintenance = EquipmentUsageType.objects.get_or_create(name='Maintenance')[0]
         self.operator = User.objects.create_user(
             'op1', password='pw-test-12345', role=Role.OPERATOR
         )

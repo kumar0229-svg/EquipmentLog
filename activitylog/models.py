@@ -1,9 +1,10 @@
 import datetime
 
 from django.conf import settings
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 
-from masters.models import Equipment, EquipmentUsageType, Product
+from masters.models import Equipment, EquipmentState, EquipmentUsageType, Product
 
 
 class EntryStatus(models.TextChoices):
@@ -35,6 +36,48 @@ class ProcessSubType(models.TextChoices):
 class MaintenanceType(models.TextChoices):
     BREAKDOWN = 'BREAKDOWN', 'Breakdown / Repair'
     PREVENTIVE = 'PREVENTIVE', 'Preventive Maintenance'
+
+
+class ActivityRuleConfig(models.Model):
+    """Admin-editable version of what rules.ACTIVITY_RULES used to hardcode:
+    the equipment status an (usage type, sub-activity code) requires to
+    start, what it shows while running, and what it leaves behind on
+    completion.
+
+    `code` must match the sub-activity code produced by
+    rules.sub_activity_code_from_values() — i.e. a ProcessSubType,
+    CleaningType, or MaintenanceType value, or 'QUALIFICATION' for
+    Qualification. That mapping is still code (start_activity.html's JS and
+    the model field choices it's built from), so this table lets an admin
+    revise *where a known activity is allowed to run*, not invent an
+    entirely new kind of activity.
+    """
+
+    usage_type = models.ForeignKey(
+        EquipmentUsageType, on_delete=models.PROTECT, related_name='activity_rules'
+    )
+    code = models.CharField(
+        max_length=20,
+        help_text=(
+            'Must match the sub-activity code used in code — e.g. REACTION, '
+            'OTHER_EQUIPMENT, HOLDING, A, B, Q, G, BREAKDOWN, PREVENTIVE, QUALIFICATION.'
+        ),
+    )
+    label = models.CharField(max_length=150)
+    during_state = models.CharField(max_length=32, choices=EquipmentState.choices)
+    after_state = models.CharField(max_length=32, choices=EquipmentState.choices)
+    allowed_prior_states = ArrayField(
+        models.CharField(max_length=32, choices=EquipmentState.choices),
+        help_text='Equipment statuses this activity can be started from.',
+    )
+
+    class Meta:
+        ordering = ['usage_type__name', 'code']
+        unique_together = [('usage_type', 'code')]
+        verbose_name = 'Activity Rule'
+
+    def __str__(self):
+        return f'{self.usage_type.name} — {self.label}'
 
 
 class ActivityLogEntry(models.Model):

@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block title %}Dashboard{% endblock %}
+{% block title %}{{ heading }}{% endblock %}
 {% block body_class %}dashboard-page{% endblock %}
 
 {% block content %}
-<h1>Dashboard</h1>
+<h1>{{ heading }}</h1>
 
 <div class="filters">
   {% if not stream_locked %}
@@ -23,12 +23,11 @@
 </div>
 
 {% if selected_stream %}
-  {% for group in equipment_groups %}
-    <h2>{{ group.type_name }}</h2>
-    {% include 'activitylog/_equipment_grid.html' with rows=group.rows %}
-  {% empty %}
+  {% if rows %}
+    {% include 'activitylog/_equipment_grid.html' %}
+  {% else %}
     <p class="muted">No equipment configured in this stream yet.</p>
-  {% endfor %}
+  {% endif %}
 {% else %}
   <p class="muted">Select a stream above to view its equipment.</p>
 {% endif %}

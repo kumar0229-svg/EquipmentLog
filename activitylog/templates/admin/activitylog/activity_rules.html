@@ -13,8 +13,10 @@
 <p>
   What each activity requires the equipment's current status to be before it can start, what the
   status becomes while it runs, and what it becomes once it's completed. This is generated
-  directly from <code>activitylog/rules.py</code> — the same rules Start Activity enforces — so
-  it can't drift out of sync with what the app actually does.
+  directly from the Activity Rule Configs table — the same rules Start Activity enforces — so
+  it can't drift out of sync with what the app actually does. This page is read-only; to change a
+  rule (e.g. after a procedure revision), edit it under
+  <a href="{% url 'admin:activitylog_activityruleconfig_changelist' %}">Activity Log &rsaquo; Activity rule configs</a>.
 </p>
 
 <table id="result_list">

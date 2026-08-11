@@ -9,21 +9,38 @@
 </head>
 <body class="{% block body_class %}{% endblock %}">
 <header class="topbar">
-  <a class="brand" href="{% url 'dashboard' %}">
+  <a class="brand" href="{% url 'main_menu' %}">
     <img src="{% static 'img/cipla-logo.svg' %}" alt="Cipla" class="brand-logo">
     <span>DigiLog</span>
-    <span class="brand-module">Equipment Log</span>
-    <span class="brand-version">v0.1</span>
+    <span class="brand-version">v0.2</span>
   </a>
   {% if user.is_authenticated %}
     <nav>
-      <a href="{% url 'dashboard' %}">Dashboard</a>
-      <a href="{% url 'equipment_list' %}">Equipment</a>
-      <a href="{% url 'entry_list' %}">UsageLog</a>
-      {% if user.is_operator or user.is_engineer or user.is_admin_role %}
-        <a href="{% url 'start_activity' %}">Start Activity</a>
+      {% if in_equipment_log %}
+        <a href="{% url 'dashboard' %}">EqDash</a>
+        <a href="{% url 'entry_list' %}">EqLog</a>
+        {% if user.is_operator or user.is_engineer or user.is_admin_role %}
+          <a href="{% url 'start_activity' %}">Start Activity</a>
+        {% endif %}
+        {% if user.is_staff %}<a href="{% url 'admin:index' %}">EqMasterData</a>{% endif %}
+        <a class="nav-back" href="{% url 'main_menu' %}">&larr; Back to Main Menu</a>
+      {% else %}
+        <div class="nav-row">
+          <a href="{% url 'dashboard' %}">Equipment Log</a>
+          <a href="{% url 'bmr_log' %}">BMR Log</a>
+          <a href="{% url 'cleaning_record_log' %}">ECR Log</a>
+          <a href="{% url 'qualification_protocol_log' %}">Qualification Protocol Log</a>
+          <a href="{% url 'vmp_schedule' %}">VMP Schedule</a>
+          <a href="{% url 'line_clearance_log' %}">Line Clearance Log</a>
+        </div>
+        <div class="nav-row">
+          <a href="{% url 'qa_review_sheet' %}">QA Review Sheet</a>
+          <a href="{% url 'error_ratification_log' %}">Error Ratification Log</a>
+          <a href="{% url 'data_entry_error_log' %}">Data Entry Error Log</a>
+          <a href="{% url 'csv_numbering_log' %}">CSV Numbering Log</a>
+          <a href="{% url 'alarm_impact_assessment_log' %}">Alarm Impact Assessment Log</a>
+        </div>
       {% endif %}
-      {% if user.is_staff %}<a href="{% url 'admin:index' %}">MasterData</a>{% endif %}
     </nav>
     <div class="user">
       <span>{{ user.get_full_name|default:user.username }} · {{ user.get_role_display }}</span>

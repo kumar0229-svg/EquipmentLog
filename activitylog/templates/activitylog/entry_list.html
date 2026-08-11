@@ -12,6 +12,7 @@
   <p>{{ form.date_to.label_tag }} {{ form.date_to }}</p>
   <button type="submit" class="primary">Filter</button>
   <a class="btn" href="?{{ query }}&export=csv">Export CSV</a>
+  <a class="btn" href="{% url 'entry_list_print' %}?{{ query }}" target="_blank">Print</a>
 </form>
 
 <div class="card">

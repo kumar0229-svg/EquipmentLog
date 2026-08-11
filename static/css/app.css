@@ -29,13 +29,6 @@ body {
 
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; text-decoration: none; color: var(--text); }
 .brand-logo { height: 28px; width: auto; }
-.brand-module {
-  font-weight: 400;
-  font-size: 13px;
-  color: var(--muted);
-  padding-left: 10px;
-  border-left: 1px solid var(--border);
-}
 .brand-version {
   font-weight: 400;
   font-size: 11px;
@@ -44,9 +37,28 @@ body {
   border: 1px solid var(--border);
   border-radius: 10px;
 }
-.topbar nav { display: flex; gap: 16px; }
-.topbar nav a { color: var(--accent); text-decoration: none; }
-.topbar nav a:hover { text-decoration: underline; }
+.topbar nav { display: flex; flex-direction: column; gap: 6px; }
+.topbar nav .nav-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.topbar nav a {
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: none;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  transition: background-color 150ms ease, border-color 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+}
+.topbar nav a:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+}
+.topbar nav a:active {
+  transform: translateY(0) scale(0.96);
+  box-shadow: none;
+}
 .topbar .user { margin-left: auto; display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 14px; }
 
 main { padding: 24px; max-width: 1400px; }
@@ -213,7 +225,6 @@ h3 { font-size: 13px; font-weight: 600; color: var(--muted); margin: 14px 0 8px;
 /* Dashboard page only — everything else keeps the roomier default spacing. */
 .dashboard-page main { padding: 14px 20px; }
 .dashboard-page h1 { font-size: 17px; margin: 0 0 8px; }
-.dashboard-page h2 { font-size: 13px; margin: 12px 0 6px; gap: 6px; }
 .dashboard-page .filters { margin-bottom: 8px; gap: 10px; }
 .dashboard-page .pill { font-size: 10px; padding: 1px 6px; }
 
@@ -229,6 +240,28 @@ h3 { font-size: 13px; font-weight: 600; color: var(--muted); margin: 14px 0 8px;
 .equipment-tile.tile-UNDER_MAINTENANCE:hover { border-color: #b91c1c; }
 
 .pill.expiring { background: #fdf1d8; color: #8a5a00; }
+
+/* ---- Login (registration/login.html) ---------------------------------- */
+
+.login-layout { display: grid; grid-template-columns: minmax(0, 520px) 380px; gap: 24px; align-items: center; }
+.login-banner {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.login-layout .card { margin-bottom: 0; }
+
+/* "Back to Main Menu" is a way out of a module's own sub-nav, not just
+   another link among siblings — filled solid so it reads as the one exit,
+   not another pill in the same row. */
+.topbar nav > a.nav-back {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.topbar nav > a.nav-back:hover { background: #164a8c; border-color: #164a8c; color: #fff; }
 
 .messages { list-style: none; padding: 0; margin: 0 0 16px; }
 .msg {

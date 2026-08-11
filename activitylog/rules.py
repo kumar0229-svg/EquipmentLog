@@ -1,16 +1,22 @@
 """Activity Rules: what equipment status an Activity + Sub Activity requires to
 start, what it shows while running, and what it leaves behind on completion.
 
-Source: the "Activity rules" table (Activity / Sub Activity / Equipment Status
-during activity / Equipment Status after completion / Rules for the status to
-choose). Sub-activity codes for Cleaning reuse activitylog.models.CleaningType
-values directly (A/B/Q/G) so there is exactly one enum for cleaning sub-type,
-not two.
+Source: the ActivityRuleConfig table (admin-editable — Activity Log ▸
+Activity rule configs), seeded from what used to be a hardcoded
+ACTIVITY_RULES dict here.
+Sub-activity codes for Cleaning reuse activitylog.models.CleaningType values
+directly (A/B/Q/G) so there is exactly one enum for cleaning sub-type, not
+two.
+
+The rule set is read once per cache period (see get_rules_dict) rather than
+per lookup — it's queried from a handful of call sites, some of them
+(entry_list rendering) once per row, so an uncached DB round trip per lookup
+would turn a page of 500 entries into 500 extra queries.
 """
 
 from dataclasses import dataclass
 
-from masters.models import EquipmentState
+from django.core.cache import cache
 
 REACTION = 'REACTION'
 OTHER_EQUIPMENT = 'OTHER_EQUIPMENT'
@@ -21,6 +27,12 @@ PREVENTIVE = 'PREVENTIVE'
 
 QUALIFICATION = 'QUALIFICATION'
 
+CACHE_KEY = 'activitylog:activity_rules'
+# Signals (activitylog/apps.py) clear this immediately in the worker that
+# handled the edit; the TTL is a backstop for other gunicorn workers, whose
+# in-memory cache a signal in one process can't reach.
+CACHE_TTL = 300
+
 
 @dataclass(frozen=True)
 class ActivityRule:
@@ -30,102 +42,38 @@ class ActivityRule:
     allowed_prior_states: frozenset
 
 
-_PROCESS_PRIOR = frozenset(
-    {
-        EquipmentState.CLEANED_TYPE_A,
-        EquipmentState.CLEANED_AND_QA_CERTIFIED,
-        EquipmentState.CLEANED_AFTER_MAINTENANCE,
+def _load_rules_dict():
+    from .models import ActivityRuleConfig
+
+    return {
+        (config.usage_type.name, config.code): ActivityRule(
+            config.label,
+            config.during_state,
+            config.after_state,
+            frozenset(config.allowed_prior_states),
+        )
+        for config in ActivityRuleConfig.objects.select_related('usage_type').all()
     }
-)
-
-_MAINTENANCE_PRIOR = frozenset(
-    {
-        EquipmentState.CLEANED_AND_QA_CERTIFIED,
-        EquipmentState.CLEANED_AFTER_MAINTENANCE,
-        EquipmentState.CLEANED_READY_FOR_QA,
-    }
-)
-
-ACTIVITY_RULES = {
-    ('Process', REACTION): ActivityRule(
-        'Reaction (Reactor Only)',
-        EquipmentState.IN_PROCESS,
-        EquipmentState.TO_BE_CLEANED,
-        _PROCESS_PRIOR,
-    ),
-    ('Process', OTHER_EQUIPMENT): ActivityRule(
-        'Equipment Other Than Reactor',
-        EquipmentState.IN_USE,
-        EquipmentState.TO_BE_CLEANED,
-        _PROCESS_PRIOR,
-    ),
-    ('Process', HOLDING): ActivityRule(
-        'Holding of Mother Liquor / Distilled Solvent',
-        EquipmentState.TO_BE_PRESERVED,
-        EquipmentState.TO_BE_CLEANED,
-        _PROCESS_PRIOR,
-    ),
-    ('Cleaning', 'A'): ActivityRule(
-        'Type-A (Same Product)',
-        EquipmentState.UNDER_CLEANING,
-        EquipmentState.CLEANED_TYPE_A,
-        frozenset({EquipmentState.TO_BE_CLEANED, EquipmentState.CLEANED_AND_QA_CERTIFIED}),
-    ),
-    ('Cleaning', 'B'): ActivityRule(
-        'Type-B (Product Changeover)',
-        EquipmentState.UNDER_CLEANING,
-        EquipmentState.CLEANED_READY_FOR_QA,
-        frozenset(
-            {
-                EquipmentState.TO_BE_CLEANED,
-                EquipmentState.CLEANED_TYPE_A,
-                EquipmentState.CLEANED_AND_QA_CERTIFIED,
-                EquipmentState.CLEANED_AFTER_MAINTENANCE,
-                EquipmentState.NOT_IN_USE,
-            }
-        ),
-    ),
-    ('Cleaning', 'Q'): ActivityRule(
-        'QA Certification',
-        EquipmentState.UNDER_QA_CERTIFICATION,
-        EquipmentState.CLEANED_AND_QA_CERTIFIED,
-        frozenset({EquipmentState.CLEANED_READY_FOR_QA, EquipmentState.CLEANED_AFTER_MAINTENANCE}),
-    ),
-    ('Cleaning', 'G'): ActivityRule(
-        'Type-G (After Maintenance)',
-        EquipmentState.UNDER_CLEANING,
-        EquipmentState.CLEANED_AFTER_MAINTENANCE,
-        frozenset({EquipmentState.TO_BE_CLEANED_AFTER_MAINTENANCE, EquipmentState.TO_BE_CLEANED}),
-    ),
-    ('Maintenance', BREAKDOWN): ActivityRule(
-        'Breakdown / Repair',
-        EquipmentState.UNDER_MAINTENANCE,
-        EquipmentState.TO_BE_CLEANED_AFTER_MAINTENANCE,
-        _MAINTENANCE_PRIOR,
-    ),
-    ('Maintenance', PREVENTIVE): ActivityRule(
-        'Preventive Maintenance',
-        EquipmentState.UNDER_MAINTENANCE,
-        EquipmentState.TO_BE_CLEANED_AFTER_MAINTENANCE,
-        _MAINTENANCE_PRIOR,
-    ),
-    ('Qualification', QUALIFICATION): ActivityRule(
-        'Qualification / Requalification',
-        EquipmentState.UNDER_QUALIFICATION,
-        EquipmentState.TO_BE_CLEANED,
-        frozenset({EquipmentState.CLEANED_AND_QA_CERTIFIED, EquipmentState.CLEANED_READY_FOR_QA}),
-    ),
-}
 
 
-DURING_STATES = frozenset(rule.during_state for rule in ACTIVITY_RULES.values())
+def get_rules_dict():
+    """{(usage_type_name, code): ActivityRule}, cached — see module docstring."""
+    rules = cache.get(CACHE_KEY)
+    if rules is None:
+        rules = _load_rules_dict()
+        cache.set(CACHE_KEY, rules, CACHE_TTL)
+    return rules
+
+
+def get_during_states():
+    return frozenset(rule.during_state for rule in get_rules_dict().values())
 
 
 def next_actions_for_state(state):
     """(usage_type_name, code, rule) for every activity startable from `state`."""
     return [
         (usage_type_name, code, rule)
-        for (usage_type_name, code), rule in ACTIVITY_RULES.items()
+        for (usage_type_name, code), rule in get_rules_dict().items()
         if state in rule.allowed_prior_states
     ]
 
@@ -157,7 +105,7 @@ def sub_activity_code(usage_type_name, entry):
 def get_rule(usage_type_name, code):
     if not code:
         return None
-    return ACTIVITY_RULES.get((usage_type_name, code))
+    return get_rules_dict().get((usage_type_name, code))
 
 
 def get_rule_for_entry(entry):

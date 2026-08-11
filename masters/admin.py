@@ -7,6 +7,8 @@ from .models import (
     EquipmentUsageType,
     Product,
     ProductEquipment,
+    SiteSetting,
+    UnitOfMeasurement,
 )
 
 
@@ -49,9 +51,16 @@ class AreaAdmin(admin.ModelAdmin):
         return self._can_edit(request)
 
 
+@admin.register(UnitOfMeasurement)
+class UnitOfMeasurementAdmin(AdminOnlyMixin, admin.ModelAdmin):
+    list_display = ['name', 'symbol', 'active']
+    list_filter = ['active']
+    search_fields = ['name', 'symbol']
+
+
 @admin.register(EquipmentType)
 class EquipmentTypeAdmin(AdminOnlyMixin, admin.ModelAdmin):
-    list_display = ['name', 'active']
+    list_display = ['name', 'capacity_uom', 'surface_area_uom', 'active']
     list_filter = ['active']
     search_fields = ['name']
 
@@ -65,9 +74,42 @@ class EquipmentUsageTypeAdmin(AdminOnlyMixin, admin.ModelAdmin):
 
 @admin.register(Equipment)
 class EquipmentAdmin(AdminOnlyMixin, admin.ModelAdmin):
-    list_display = ['code', 'name', 'equipment_type', 'area', 'state', 'is_movable', 'active']
+    list_display = [
+        'code',
+        'name',
+        'equipment_type',
+        'capacity',
+        'material_of_construction',
+        'total_surface_area',
+        'last_oq_date',
+        'state',
+        'active',
+    ]
+    list_display_links = ['code']
+    list_editable = [
+        'name',
+        'capacity',
+        'material_of_construction',
+        'total_surface_area',
+        'last_oq_date',
+        'state',
+        'active',
+    ]
     list_filter = ['equipment_type', 'area', 'state', 'is_movable', 'active']
     search_fields = ['code', 'name']
+    fieldsets = [
+        (None, {
+            'fields': [
+                'code', 'name', 'equipment_type', 'department', 'area',
+                'is_movable', 'state', 'active',
+            ],
+        }),
+        ('Equipment Attributes', {
+            'fields': [
+                'capacity', 'material_of_construction', 'total_surface_area', 'last_oq_date',
+            ],
+        }),
+    ]
 
 
 class ProductEquipmentInline(admin.TabularInline):
@@ -82,3 +124,13 @@ class ProductAdmin(AdminOnlyMixin, admin.ModelAdmin):
     search_fields = ['name']
     filter_horizontal = ['streams']
     inlines = [ProductEquipmentInline]
+
+
+@admin.register(SiteSetting)
+class SiteSettingAdmin(AdminOnlyMixin, admin.ModelAdmin):
+    """Only one row is meaningful, so adding a second is blocked outright."""
+
+    list_display = ['location']
+
+    def has_add_permission(self, request):
+        return super().has_add_permission(request) and not SiteSetting.objects.exists()

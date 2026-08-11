@@ -48,7 +48,7 @@ def equipment_context_map():
     already in progress, and narrow the Usage Type / sub-activity choices down
     to only what's valid from its current status. "busy_no_entry" flags the
     data-inconsistency case: equipment showing a mid-activity status
-    (rules.DURING_STATES) with no open entry to link to (state was set some
+    (rules.get_during_states()) with no open entry to link to (state was set some
     other way, e.g. directly in admin).
 
     "products" is {product_id (str): procedure_no} from the product's master
@@ -79,7 +79,7 @@ def equipment_context_map():
                 else None
             ),
             'busy_no_entry': (
-                e.id not in open_entry_by_equipment and e.state in rules.DURING_STATES
+                e.id not in open_entry_by_equipment and e.state in rules.get_during_states()
             ),
             'next_actions': [
                 {'usage_type_id': str(usage_type_ids[usage_type_name]), 'code': code, 'label': rule.label}

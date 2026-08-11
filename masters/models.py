@@ -37,8 +37,32 @@ class Area(models.Model):
         return ids
 
 
+class UnitOfMeasurement(models.Model):
+    name = models.CharField(max_length=50, unique=True)
+    symbol = models.CharField(max_length=20, blank=True)
+    active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = 'unit of measurement'
+        verbose_name_plural = 'units of measurement'
+
+    def __str__(self):
+        return f'{self.name} ({self.symbol})' if self.symbol else self.name
+
+
 class EquipmentType(models.Model):
     name = models.CharField(max_length=100, unique=True)
+    capacity_uom = models.ForeignKey(
+        UnitOfMeasurement, null=True, blank=True, on_delete=models.PROTECT, related_name='+',
+        verbose_name='Capacity UOM',
+        help_text='Unit of measurement for Capacity across all equipment of this type.',
+    )
+    surface_area_uom = models.ForeignKey(
+        UnitOfMeasurement, null=True, blank=True, on_delete=models.PROTECT, related_name='+',
+        verbose_name='Total Surface Area UOM',
+        help_text='Unit of measurement for Total Surface Area across all equipment of this type.',
+    )
     active = models.BooleanField(default=True)
 
     class Meta:
@@ -90,12 +114,30 @@ class Equipment(models.Model):
     )
     active = models.BooleanField(default=True)
 
+    capacity = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    material_of_construction = models.CharField('Material of Construction', max_length=100, blank=True)
+    total_surface_area = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    last_oq_date = models.DateField('Last Major Qualification (OQ) Date', null=True, blank=True)
+
     class Meta:
         ordering = ['code']
         verbose_name_plural = 'equipment'
 
     def __str__(self):
         return f'{self.code} — {self.equipment_type.name}'
+
+    def _with_uom(self, value, uom):
+        if value is None:
+            return ''
+        return f'{value} {uom.symbol}' if uom and uom.symbol else str(value)
+
+    @property
+    def capacity_display(self):
+        return self._with_uom(self.capacity, self.equipment_type.capacity_uom)
+
+    @property
+    def total_surface_area_display(self):
+        return self._with_uom(self.total_surface_area, self.equipment_type.surface_area_uom)
 
 
 class Product(models.Model):
@@ -117,6 +159,31 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class SiteSetting(models.Model):
+    """Site-wide values that show up on printed output (e.g. the Equipment
+    Activity Log printout header). Only one row is expected to ever exist —
+    the admin restricts adding a second one — so callers just take the first.
+    """
+
+    location = models.CharField(
+        max_length=150,
+        default='Bommasandra',
+        help_text='Printed under the logo on report headers, e.g. "Bommasandra".',
+    )
+
+    class Meta:
+        verbose_name = 'Site Setting'
+        verbose_name_plural = 'Site Settings'
+
+    def __str__(self):
+        return self.location
+
+    @classmethod
+    def get_location(cls):
+        setting = cls.objects.first()
+        return setting.location if setting else cls._meta.get_field('location').default
 
 
 class ProductEquipment(models.Model):

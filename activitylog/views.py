@@ -9,11 +9,13 @@ from django.utils import timezone
 
 from accounts.models import Role
 from accounts.permissions import role_required
-from masters.models import Area, AreaType, Equipment
+from masters.models import Area, AreaType, Equipment, SiteSetting
 
 from . import rules
 from .forms import EntryFilterForm, StartActivityForm, equipment_context_map, usage_type_field_map
 from .models import ActivityLogEntry, EntryStatus
+
+PRINT_ROWS_PER_PAGE = 25
 
 
 def _server_date_and_time():
@@ -22,15 +24,8 @@ def _server_date_and_time():
     return now.date(), now.time().replace(second=0, microsecond=0)
 
 
-def _grouped_by_type(rows):
-    by_type = {}
-    for row in rows:
-        by_type.setdefault(row['equipment'].equipment_type.name, []).append(row)
-    return [{'type_name': type_name, 'rows': by_type[type_name]} for type_name in sorted(by_type)]
-
-
 @login_required
-def dashboard(request):
+def dashboard(request, heading='Dashboard'):
     streams = Area.objects.filter(area_type=AreaType.STREAM, active=True).select_related('parent')
 
     # Section heads are locked to their own section's stream — no picker, no
@@ -85,13 +80,12 @@ def dashboard(request):
                 }
             )
 
-    equipment_groups = _grouped_by_type(rows)
-
     return render(
         request,
         'activitylog/dashboard.html',
         {
-            'equipment_groups': equipment_groups,
+            'heading': heading,
+            'rows': rows,
             'streams': sorted(streams, key=lambda s: s.full_path),
             'selected_stream': selected_stream,
             'stream_locked': bool(locked_stream),
@@ -99,13 +93,10 @@ def dashboard(request):
     )
 
 
-@login_required
-def entry_list(request):
-    form = EntryFilterForm(request.GET or None)
+def _filtered_entries(form):
     entries = ActivityLogEntry.objects.select_related(
         'equipment', 'product', 'usage_type', 'start_by', 'end_by'
     )
-
     if form.is_valid():
         if form.cleaned_data['equipment']:
             entries = entries.filter(equipment=form.cleaned_data['equipment'])
@@ -117,6 +108,32 @@ def entry_list(request):
             entries = entries.filter(start_date__gte=form.cleaned_data['date_from'])
         if form.cleaned_data['date_to']:
             entries = entries.filter(start_date__lte=form.cleaned_data['date_to'])
+    return entries
+
+
+def _filters_display(form):
+    """Human-readable summary of the applied filters, for the print header."""
+    if not form.is_valid():
+        return 'None'
+    parts = []
+    if form.cleaned_data.get('equipment'):
+        parts.append(f"Equipment: {form.cleaned_data['equipment'].code}")
+    if form.cleaned_data.get('product'):
+        parts.append(f"Product: {form.cleaned_data['product'].name}")
+    if form.cleaned_data.get('status'):
+        status_choices = dict(form.fields['status'].choices)
+        parts.append(f"Status: {status_choices[form.cleaned_data['status']]}")
+    if form.cleaned_data.get('date_from'):
+        parts.append(f"From: {_fmt_date(form.cleaned_data['date_from'])}")
+    if form.cleaned_data.get('date_to'):
+        parts.append(f"To: {_fmt_date(form.cleaned_data['date_to'])}")
+    return ' | '.join(parts) if parts else 'None (showing all entries)'
+
+
+@login_required
+def entry_list(request):
+    form = EntryFilterForm(request.GET or None)
+    entries = _filtered_entries(form)
 
     if request.GET.get('export') == 'csv':
         return _export_csv(entries)
@@ -125,6 +142,26 @@ def entry_list(request):
         request,
         'activitylog/entry_list.html',
         {'form': form, 'entries': entries[:500], 'query': request.GET.urlencode()},
+    )
+
+
+@login_required
+def entry_list_print(request):
+    form = EntryFilterForm(request.GET or None)
+    entries = list(_filtered_entries(form)[:500])
+    pages = [
+        entries[i:i + PRINT_ROWS_PER_PAGE] for i in range(0, len(entries), PRINT_ROWS_PER_PAGE)
+    ] or [[]]
+
+    return render(
+        request,
+        'activitylog/entry_list_print.html',
+        {
+            'pages': pages,
+            'filters_display': _filters_display(form),
+            'location': SiteSetting.get_location(),
+            'generated_at': timezone.localtime(),
+        },
     )
 
 
