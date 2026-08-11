@@ -13,6 +13,7 @@
     <img src="{% static 'img/cipla-logo.svg' %}" alt="Cipla" class="brand-logo">
     <span>DigiLog</span>
     <span class="brand-module">Equipment Log</span>
+    <span class="brand-version">v0.1</span>
   </a>
   {% if user.is_authenticated %}
     <nav>
@@ -41,5 +42,8 @@
   {% endif %}
   {% block content %}{% endblock %}
 </main>
+<footer class="app-footer">
+  <span>Developed by BMSQA</span>
+</footer>
 </body>
 </html>
