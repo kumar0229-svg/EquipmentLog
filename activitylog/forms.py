@@ -17,13 +17,13 @@ from .models import ActivityLogEntry, CleaningType, MaintenanceType, ProcessSubT
 # type dependent) — being listed here only means "possibly visible for this
 # usage type".
 USAGE_TYPE_FIELDS = {
-    'Process': ['product', 'batch_no', 'process_sub_type', 'remarks'],
-    'Cleaning': ['cleaning_type', 'batch_no', 'cleaning_sop_no', 'remarks'],
+    'Process': ['product', 'batch_no', 'process_sub_type', 'sap_document_no', 'remarks'],
+    'Cleaning': ['cleaning_type', 'batch_no', 'cleaning_sop_no', 'sap_document_no', 'remarks'],
     'Maintenance': [
         'equipment_maintenance_sop_no', 'maintenance_type', 'maintenance_frequency',
-        'pm_process_order_no', 'remarks',
+        'pm_process_order_no', 'sap_document_no', 'remarks',
     ],
-    'Qualification': ['qualification_protocol_no', 'remarks'],
+    'Qualification': ['qualification_protocol_no', 'sap_document_no', 'remarks'],
 }
 
 
@@ -114,6 +114,7 @@ class StartActivityForm(forms.ModelForm):
             'maintenance_frequency',
             'pm_process_order_no',
             'qualification_protocol_no',
+            'sap_document_no',
             'remarks',
         ]
         widgets = {

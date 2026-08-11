@@ -1,3 +1,5 @@
+import datetime
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -58,6 +60,28 @@ class ActivityLogEntryModelTests(ActivityLogTestCase):
         entry.end_date = '2026-01-02'
         entry.save()
         self.assertFalse(entry.is_open)
+
+    def test_duration_display_blank_while_open(self):
+        entry = self.make_entry()
+        self.assertIsNone(entry.duration)
+        self.assertEqual(entry.duration_display, '')
+
+    def test_duration_display_formats_days_hours_minutes(self):
+        entry = self.make_entry(
+            start_date='2026-01-01', start_time='09:00',
+            end_date='2026-01-02', end_time='11:17',
+        )
+        entry.refresh_from_db()
+        self.assertEqual(entry.duration, datetime.timedelta(days=1, hours=2, minutes=17))
+        self.assertEqual(entry.duration_display, '1d 2h 17m')
+
+    def test_duration_display_omits_zero_days(self):
+        entry = self.make_entry(
+            start_date='2026-01-01', start_time='09:00',
+            end_date='2026-01-01', end_time='09:45',
+        )
+        entry.refresh_from_db()
+        self.assertEqual(entry.duration_display, '45m')
 
 
 class StartActivityViewTests(ActivityLogTestCase):

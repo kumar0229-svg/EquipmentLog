@@ -10,6 +10,7 @@
     <dt>Usage Type</dt><dd>{{ entry.usage_type.name }}</dd>
     {% if entry.product %}<dt>Product</dt><dd>{{ entry.product }}</dd>{% endif %}
     {% if entry.batch_no %}<dt>Batch No</dt><dd>{{ entry.batch_no }}</dd>{% endif %}
+    {% if entry.sap_document_no %}<dt>SAP Document No</dt><dd>{{ entry.sap_document_no }}</dd>{% endif %}
     {% if entry.process_sub_type %}<dt>Process Sub Activity</dt><dd>{{ entry.get_process_sub_type_display }}</dd>{% endif %}
     {% if entry.cleaning_sop_no %}<dt>Cleaning SOP No</dt><dd>{{ entry.cleaning_sop_no }}</dd>{% endif %}
     {% if entry.cleaning_type %}<dt>Type of Cleaning</dt><dd>{{ entry.get_cleaning_type_display }}</dd>{% endif %}
@@ -28,6 +29,7 @@
         <span class="muted">In progress</span>
       {% endif %}
     </dd>
+    {% if entry.duration_display %}<dt>Duration</dt><dd>{{ entry.duration_display }}</dd>{% endif %}
     <dt>Status</dt><dd>{{ entry.get_status_display }}</dd>
   </dl>
   <div class="actions">

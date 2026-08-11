@@ -1,3 +1,5 @@
+import datetime
+
 from django.conf import settings
 from django.db import models
 
@@ -49,6 +51,9 @@ class ActivityLogEntry(models.Model):
         help_text='Area path captured at entry time so later hierarchy edits do not rewrite history.',
     )
     usage_type = models.ForeignKey(EquipmentUsageType, on_delete=models.PROTECT)
+
+    # Common to every usage type
+    sap_document_no = models.CharField('SAP Document No', max_length=100, blank=True)
 
     # Process
     product = models.ForeignKey(Product, null=True, blank=True, on_delete=models.PROTECT)
@@ -123,6 +128,30 @@ class ActivityLogEntry(models.Model):
     @property
     def is_open(self):
         return self.end_date is None
+
+    @property
+    def duration(self):
+        """Elapsed time from start to end, or None while the entry is still open."""
+        if not self.end_date or not self.end_time:
+            return None
+        start = datetime.datetime.combine(self.start_date, self.start_time)
+        end = datetime.datetime.combine(self.end_date, self.end_time)
+        return end - start
+
+    @property
+    def duration_display(self):
+        """'1d 6h 17m'-style rendering of duration, or '' while still open."""
+        delta = self.duration
+        if delta is None:
+            return ''
+        total_minutes = int(delta.total_seconds() // 60)
+        days, minutes_in_day = divmod(total_minutes, 24 * 60)
+        hours, minutes = divmod(minutes_in_day, 60)
+        parts = [f'{days}d'] if days else []
+        if days or hours:
+            parts.append(f'{hours}h')
+        parts.append(f'{minutes}m')
+        return ' '.join(parts)
 
     @property
     def equipment_status_at_entry(self):

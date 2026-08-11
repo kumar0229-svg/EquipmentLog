@@ -102,7 +102,9 @@ def dashboard(request):
 @login_required
 def entry_list(request):
     form = EntryFilterForm(request.GET or None)
-    entries = ActivityLogEntry.objects.select_related('equipment', 'product', 'usage_type', 'start_by')
+    entries = ActivityLogEntry.objects.select_related(
+        'equipment', 'product', 'usage_type', 'start_by', 'end_by'
+    )
 
     if form.is_valid():
         if form.cleaned_data['equipment']:
@@ -142,8 +144,9 @@ def _export_csv(entries):
         [
             'Equipment', 'Area', 'Usage Type', 'Product', 'Batch No', 'Process Sub Activity',
             'Cleaning SOP No', 'Type of Cleaning', 'Maintenance SOP No', 'Maintenance Type',
-            'Frequency', 'PM Process Order No', 'Qualification Protocol No', 'Start Date',
-            'Start Time', 'Started By', 'End Date', 'End Time', 'Ended By', 'Status', 'Remarks',
+            'Frequency', 'PM Process Order No', 'Qualification Protocol No', 'SAP Document No',
+            'Start Date', 'Start Time', 'Started By', 'End Date', 'End Time', 'Ended By',
+            'Duration', 'Status', 'Remarks',
         ]
     )
     for e in entries:
@@ -155,10 +158,11 @@ def _export_csv(entries):
                 e.equipment_maintenance_sop_no,
                 e.get_maintenance_type_display() if e.maintenance_type else '',
                 e.get_maintenance_frequency_display() if e.maintenance_frequency else '',
-                e.pm_process_order_no, e.qualification_protocol_no,
+                e.pm_process_order_no, e.qualification_protocol_no, e.sap_document_no,
                 _fmt_date(e.start_date), _fmt_time(e.start_time), e.start_by.username,
                 _fmt_date(e.end_date), _fmt_time(e.end_time),
-                e.end_by.username if e.end_by else '', e.get_status_display(), e.remarks,
+                e.end_by.username if e.end_by else '', e.duration_display, e.get_status_display(),
+                e.remarks,
             ]
         )
     return response
