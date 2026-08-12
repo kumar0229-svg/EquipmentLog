@@ -2,9 +2,9 @@ from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.urls import include, path
 
-admin.site.site_header = 'DigiLog Administration'
-admin.site.site_title = 'DigiLog'
-admin.site.index_title = 'DigiLog Administration'
+admin.site.site_header = 'CIPLog Administration'
+admin.site.site_title = 'CIPLog'
+admin.site.index_title = 'CIPLog Administration'
 
 urlpatterns = [
     path('admin/', admin.site.urls),

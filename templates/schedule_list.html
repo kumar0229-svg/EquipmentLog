@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+<p class="muted">Reference list only — not yet a live tracking module. Grouped by frequency.</p>
+
+{% for group in frequency_groups %}
+  <div class="card">
+    <h3>{{ group.label }} ({{ group.items|length }})</h3>
+    <table class="grid">
+      <thead>
+        <tr><th>Sr. No.</th><th>Schedule Name</th><th>Department</th><th>Schedule Number</th></tr>
+      </thead>
+      <tbody>
+        {% for item in group.items %}
+          <tr>
+            <td>{{ item.sr_no }}</td>
+            <td>{{ item.name }}</td>
+            <td>{{ item.department }}</td>
+            <td>{{ item.schedule_number }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endfor %}
+{% endblock %}

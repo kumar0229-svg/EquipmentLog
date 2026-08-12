@@ -295,7 +295,7 @@ dl.detail dd { margin: 0; }
 }
 .menu-toolbar h2 { margin: 0; }
 
-/* Segmented filter (All / Logs / Forms) — plain links styled as one
+/* Segmented filter (All / Logs / Forms / Scheduler) — plain links styled as one
    pill-edged control, active tab filled solid. No JS: each option is a
    real link to ?filter=…, so the server just re-renders the grid. */
 .seg {

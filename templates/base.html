@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}DigiLog{% endblock %}</title>
+  <title>{% block title %}CIPLog{% endblock %}</title>
   <link rel="icon" type="image/svg+xml" href="{% static 'img/cipla-logo.svg' %}">
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
 </head>
@@ -11,7 +11,7 @@
 <header class="topbar">
   <a class="brand" href="{% url 'main_menu' %}">
     <img src="{% static 'img/cipla-logo.svg' %}" alt="Cipla" class="brand-logo">
-    <span>DigiLog</span>
+    <span>CIPLog</span>
     <span class="brand-version">v0.3</span>
   </a>
   {% if user.is_authenticated %}
