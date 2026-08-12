@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Main Menu{% endblock %}
+{% block body_class %}main-menu-page{% endblock %}
+
+{% block content %}
+<div class="menu-hero">
+  <h1>{{ greeting }}{% if user.is_authenticated %}, {{ user.first_name|default:user.username }}{% endif %}</h1>
+  <p class="muted">Pick a log or form to get started.</p>
+</div>
+
+<div class="menu-toolbar">
+  <h2>Quick launch</h2>
+  <div class="seg">
+    <a href="?filter=all" class="seg-opt{% if active_filter == 'all' %} is-active{% endif %}">All</a>
+    <a href="?filter=logs" class="seg-opt{% if active_filter == 'logs' %} is-active{% endif %}">Logs</a>
+    <a href="?filter=forms" class="seg-opt{% if active_filter == 'forms' %} is-active{% endif %}">Forms</a>
+  </div>
+</div>
+
+<div class="module-grid">
+  {% for m in modules %}
+    <a href="{{ m.url }}" class="module-tile{% if not m.available %} is-placeholder{% endif %}">
+      <span class="module-tile-icon" aria-hidden="true">
+        {% if m.group == 'forms' %}
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3h11l5 5v11a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M14 3v5h5"/><path d="m9.5 13.5 5 5M14.5 13.5l-5 5"/></svg>
+        {% else %}
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2h10l6 6v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M8 13h8M8 17h8M8 9h3"/></svg>
+        {% endif %}
+      </span>
+      <span class="module-tile-eyebrow">{{ m.group|slice:":-1" }}</span>
+      <span class="module-tile-title">{{ m.title }}</span>
+      {% if not m.available %}<span class="pill module-tile-badge">Coming soon</span>{% endif %}
+    </a>
+  {% endfor %}
+</div>
+{% endblock %}

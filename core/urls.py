@@ -1,7 +1,8 @@
 from django.urls import path
 
-from activitylog import views as activitylog_views
+from . import views
 
 urlpatterns = [
-    path('', activitylog_views.dashboard, {'heading': 'EqStatus'}, name='main_menu'),
+    path('', views.main_menu, name='main_menu'),
+    path('module/<slug:slug>/', views.module_placeholder, name='module_placeholder'),
 ]

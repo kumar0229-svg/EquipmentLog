@@ -1,11 +1,7 @@
-EQUIPMENT_LOG_PREFIX = '/equipment-log/'
-
-
 def nav_section(request):
-    """Whether the current page belongs to the Equipment Log module.
+    """Whether the current page is the main menu.
 
-    Drives base.html's nav: inside Equipment Log, the other top-level
-    modules hide behind a "Back to Main Menu" link instead of staying
-    listed alongside Equipment Log's own sub-pages.
+    Drives base.html's nav: every page except the main menu itself just
+    shows a "Back to Main Menu" link — the menu's own tiles are the nav.
     """
-    return {'in_equipment_log': request.path_info.startswith(EQUIPMENT_LOG_PREFIX)}
+    return {'on_main_menu': request.path_info == '/'}
