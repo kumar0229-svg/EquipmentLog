@@ -112,12 +112,14 @@ def _filtered_entries(form):
 
 
 def _filters_display(form):
-    """Human-readable summary of the applied filters, for the print header."""
+    """Human-readable summary of the applied filters, for the print header.
+
+    Equipment is shown separately in the print header (it's mandatory for a
+    print run), so it's left out of this summary to avoid repeating it.
+    """
     if not form.is_valid():
         return 'None'
     parts = []
-    if form.cleaned_data.get('equipment'):
-        parts.append(f"Equipment: {form.cleaned_data['equipment'].code}")
     if form.cleaned_data.get('product'):
         parts.append(f"Product: {form.cleaned_data['product'].name}")
     if form.cleaned_data.get('status'):
@@ -148,6 +150,14 @@ def entry_list(request):
 @login_required
 def entry_list_print(request):
     form = EntryFilterForm(request.GET or None)
+    equipment = form.cleaned_data.get('equipment') if form.is_valid() else None
+
+    # A print run is always scoped to one equipment — otherwise rows for
+    # different equipment could land on the same page.
+    if not equipment:
+        messages.error(request, 'Select an equipment before printing the activity log.')
+        return redirect(f"{reverse('entry_list')}?{request.GET.urlencode()}")
+
     entries = list(_filtered_entries(form)[:500])
     pages = [
         entries[i:i + PRINT_ROWS_PER_PAGE] for i in range(0, len(entries), PRINT_ROWS_PER_PAGE)
@@ -158,6 +168,7 @@ def entry_list_print(request):
         'activitylog/entry_list_print.html',
         {
             'pages': pages,
+            'equipment': equipment,
             'filters_display': _filters_display(form),
             'location': SiteSetting.get_location(),
             'generated_at': timezone.localtime(),

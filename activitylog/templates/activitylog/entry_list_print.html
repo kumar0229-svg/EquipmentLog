@@ -38,8 +38,11 @@
 
   .print-filters { font-size: 10.5px; margin: 4px 0 8px; }
 
-  table.print-log { width: 100%; border-collapse: collapse; font-size: 9.5px; }
-  table.print-log th, table.print-log td { border: 1px solid #555; padding: 3px 5px; text-align: left; }
+  table.print-log { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 11px; }
+  table.print-log th, table.print-log td {
+    border: 1px solid #555; padding: 3px 5px; text-align: left;
+    overflow-wrap: break-word;
+  }
   table.print-log th { background: #eee; }
 
   .print-footer {
@@ -69,21 +72,32 @@
         <img src="{% static 'img/cipla-logo.svg' %}" alt="Cipla" class="print-logo">
         <div>
           <p class="print-title">EQUIPMENT ACTIVITY LOG</p>
-          <p class="print-location">Location: {{ location }}</p>
+          <p class="print-location">Location: {{ location }} &nbsp;|&nbsp; Equipment No: {{ equipment.code }}</p>
         </div>
       </div>
       <div class="print-meta">
+        Date: {{ generated_at|date:"d.m.Y" }}<br>
         Generated: {{ generated_at|date:"d.m.Y H:i" }}<br>
         By: {{ user.get_full_name|default:user.username }}
       </div>
     </div>
 
-    <div class="print-filters"><strong>Filters applied:</strong> {{ filters_display }}</div>
+    <div class="print-filters"><strong>Equipment:</strong> {{ equipment.code }}{% if equipment.name %} — {{ equipment.name }}{% endif %} &nbsp;|&nbsp; <strong>Filters applied:</strong> {{ filters_display }}</div>
 
     <table class="print-log">
+      <colgroup>
+        <col style="width: 9%">
+        <col style="width: 11%">
+        <col style="width: 10%">
+        <col style="width: 11%">
+        <col style="width: 8%">
+        <col style="width: 11%">
+        <col style="width: 8%">
+        <col style="width: 7%">
+        <col style="width: 25%">
+      </colgroup>
       <thead>
         <tr>
-          <th>Equipment</th>
           <th>Usage Type</th>
           <th>Product</th>
           <th>Batch No</th>
@@ -98,7 +112,6 @@
       <tbody>
         {% for entry in page_rows %}
         <tr>
-          <td>{{ entry.equipment.code }}</td>
           <td>{{ entry.usage_type.name }}</td>
           <td>{{ entry.product|default_if_none:"" }}</td>
           <td>{{ entry.batch_no }}</td>
@@ -112,7 +125,7 @@
           <td>{{ entry.equipment_status_at_entry.label|default:"" }}</td>
         </tr>
         {% empty %}
-        <tr><td colspan="10">No entries match these filters.</td></tr>
+        <tr><td colspan="9">No entries match these filters.</td></tr>
         {% endfor %}
       </tbody>
     </table>
