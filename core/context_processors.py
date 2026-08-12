@@ -8,4 +8,4 @@ def nav_section(request):
     modules hide behind a "Back to Main Menu" link instead of staying
     listed alongside Equipment Log's own sub-pages.
     """
-    return {'in_equipment_log': request.path.startswith(EQUIPMENT_LOG_PREFIX)}
+    return {'in_equipment_log': request.path_info.startswith(EQUIPMENT_LOG_PREFIX)}

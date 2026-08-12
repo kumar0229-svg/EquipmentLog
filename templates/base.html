@@ -17,12 +17,14 @@
   {% if user.is_authenticated %}
     <nav>
       {% if in_equipment_log %}
-        <a href="{% url 'dashboard' %}">EqDash</a>
-        <a href="{% url 'entry_list' %}">EqLog</a>
-        {% if user.is_operator or user.is_engineer or user.is_admin_role %}
-          <a href="{% url 'start_activity' %}">Start Activity</a>
-        {% endif %}
-        {% if user.is_staff %}<a href="{% url 'admin:index' %}">EqMasterData</a>{% endif %}
+        <div class="nav-row">
+          <a href="{% url 'dashboard' %}">EqDash</a>
+          <a href="{% url 'entry_list' %}">EqLog</a>
+          {% if user.is_operator or user.is_engineer or user.is_admin_role %}
+            <a href="{% url 'start_activity' %}">Start Activity</a>
+          {% endif %}
+          {% if user.is_staff %}<a href="{% url 'admin:index' %}">EqMasterData</a>{% endif %}
+        </div>
         <a class="nav-back" href="{% url 'main_menu' %}">&larr; Back to Main Menu</a>
       {% else %}
         <div class="nav-row">
