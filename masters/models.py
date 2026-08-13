@@ -187,17 +187,24 @@ class SiteSetting(models.Model):
 
 
 class ProductEquipment(models.Model):
-    """Which equipment a product may run on, and the procedure it runs under there.
+    """Which equipment a product may run on, and the SOP that governs both
+    running that product on the equipment and cleaning it afterwards — one
+    number covers both.
 
     Start Activity only offers an equipment's Process product choices from
-    this mapping (masters.forms/views equipment_context_map) — an equipment
-    with no rows here is left unrestricted rather than blocked, matching how
-    unconfigured usage-type field maps behave elsewhere in the app.
+    this mapping, and suggests a Cleaning SOP No from it based on the
+    product last processed on the equipment (activitylog.forms
+    equipment_context_map) — an equipment with no rows here is left
+    unrestricted rather than blocked, matching how unconfigured usage-type
+    field maps behave elsewhere in the app.
     """
 
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='equipment_links')
     equipment = models.ForeignKey(Equipment, on_delete=models.CASCADE, related_name='product_links')
-    procedure_no = models.CharField('Procedure No', max_length=100, blank=True)
+    cleaning_sop_no = models.CharField(
+        'Cleaning SOP No', max_length=100, blank=True,
+        help_text='SOP for running this product on this equipment and for cleaning it afterwards.',
+    )
 
     class Meta:
         ordering = ['product__name', 'equipment__code']

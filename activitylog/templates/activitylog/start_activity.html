@@ -35,7 +35,10 @@
             {{ field.label_tag }}
             {{ field }}
             {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
-            {% if field.name == 'product' %}<span class="helptext" id="product-procedure-hint"></span>{% endif %}
+            {% if field.name == 'product' %}<span class="helptext" id="product-sop-hint"></span>{% endif %}
+            {% if field.name == 'cleaning_sop_no' %}
+              <span class="helptext" id="cleaning-sop-hint"></span>
+            {% endif %}
             {{ field.errors }}
           </p>
           {% endif %}
@@ -65,7 +68,9 @@
   var maintenanceTypeSelect = document.getElementById('id_maintenance_type');
   var cleaningTypeSelect = document.getElementById('id_cleaning_type');
   var productSelect = document.getElementById('id_product');
-  var productHint = document.getElementById('product-procedure-hint');
+  var productHint = document.getElementById('product-sop-hint');
+  var cleaningSopInput = document.getElementById('id_cleaning_sop_no');
+  var cleaningSopHint = document.getElementById('cleaning-sop-hint');
 
   // Which form field carries a usage type's sub-activity choice — used to
   // narrow that field's <option>s to what's actually startable from the
@@ -167,6 +172,12 @@
         hidden = hidden || (name === 'Cleaning' && isQaCertification);
       }
 
+      // Adhered Material Removed Within 24 Hours only applies to Type A / Type B cleanings.
+      if (field === 'adhered_material_removed') {
+        var isTypeAOrB = cleaningTypeSelect && (cleaningTypeSelect.value === 'A' || cleaningTypeSelect.value === 'B');
+        hidden = hidden || name !== 'Cleaning' || !isTypeAOrB;
+      }
+
       row.hidden = hidden;
     }
   }
@@ -197,8 +208,28 @@
   function updateProductHint() {
     if (!productSelect || !productHint) return;
     var equipment = equipmentMap[equipmentSelect.value];
-    var procedureNo = equipment && equipment.products && equipment.products[productSelect.value];
-    productHint.textContent = procedureNo ? 'Procedure No: ' + procedureNo : '';
+    var product = equipment && equipment.products && equipment.products[productSelect.value];
+    var sopNo = product && product.cleaning_sop_no;
+    productHint.textContent = sopNo ? 'Cleaning SOP No: ' + sopNo : '';
+  }
+
+  // Auto-applies the Cleaning SOP No from the product master
+  // (masters.ProductEquipment) for the product last processed on the
+  // selected equipment — no manual step needed. The field stays editable in
+  // case the product being cleaned for isn't the last one processed.
+  function updateCleaningSopSuggestion() {
+    if (!cleaningSopInput) return;
+    var equipment = equipmentMap[equipmentSelect.value];
+    var products = (equipment && equipment.products) || {};
+    var lastProduct = equipment && equipment.last_product_id && products[equipment.last_product_id];
+    if (lastProduct && lastProduct.cleaning_sop_no) {
+      cleaningSopInput.value = lastProduct.cleaning_sop_no;
+      cleaningSopHint.textContent = (
+        'Auto-applied from last product used (' + lastProduct.name + '): ' + lastProduct.cleaning_sop_no
+      );
+    } else {
+      cleaningSopHint.textContent = '';
+    }
   }
 
   function applyStatusHint() {
@@ -237,6 +268,7 @@
     applyNextActionFilter();
     applyVisibility();
     applyProductOptions();
+    updateCleaningSopSuggestion();
   });
   if (maintenanceTypeSelect) {
     maintenanceTypeSelect.addEventListener('change', applyVisibility);
@@ -247,12 +279,12 @@
   if (productSelect) {
     productSelect.addEventListener('change', updateProductHint);
   }
-
   applyBusyNotice();
   applyStatusHint();
   applyNextActionFilter();
   applyVisibility();
   applyProductOptions();
+  updateCleaningSopSuggestion();
 })();
 </script>
 {% endblock %}

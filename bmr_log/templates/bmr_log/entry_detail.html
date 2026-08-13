@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}{{ entry.batch_no }}{% endblock %}
+
+{% block content %}
+<h1>{{ entry.batch_no }}</h1>
+<div class="card narrow">
+  <dl class="detail">
+    <dt>Batch No</dt><dd>{{ entry.batch_no }}</dd>
+    <dt>Type of Batch</dt><dd>{{ entry.get_batch_type_display }}</dd>
+    <dt>Process Order No</dt><dd>{{ entry.process_order_no }}</dd>
+    <dt>Product Name</dt><dd>{{ entry.product.name }}</dd>
+    <dt>Master Document No</dt><dd>{{ entry.master_document_no }}</dd>
+    <dt>Production Block</dt><dd>{{ entry.production_block.name }}</dd>
+    <dt>Issued To</dt><dd>{{ entry.issued_to.get_full_name|default:entry.issued_to.username }}</dd>
+    <dt>Issued By</dt><dd>{{ entry.issued_by.get_full_name|default:entry.issued_by.username }}</dd>
+    <dt>Issued</dt><dd>{{ entry.issued_date|date:"d.m.Y" }} {{ entry.issued_time|time:"H.i" }}</dd>
+    {% if entry.remarks %}<dt>Remarks</dt><dd>{{ entry.remarks|linebreaksbr }}</dd>{% endif %}
+  </dl>
+  <div class="actions">
+    <a class="btn" href="{% url 'bmr_log' %}">Back to BMR Issuance Log</a>
+  </div>
+</div>
+{% endblock %}

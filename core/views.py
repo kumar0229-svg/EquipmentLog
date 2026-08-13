@@ -2,6 +2,8 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.utils import timezone
 
+from core.version import CHANGELOG
+
 # Single source of truth for the landing page's module grid — each entry
 # doubles as the placeholder page's title lookup, so the tile and its
 # destination never drift apart. A module with `url_name` set already has a
@@ -65,6 +67,14 @@ MODULES = [
     # ---- Analytics ----------------------------------------------------------
     {'key': 'analytics', 'title': 'Analytics', 'group': 'analytics',
      'description': 'Usage and performance analytics across modules.'},
+
+    # ---- Help, Report & QA Review --------------------------------------------
+    {'key': 'help', 'title': 'Help', 'group': 'helps', 'url_name': 'help_page',
+     'description': 'Guides and support for using CIPLog.'},
+    {'key': 'report', 'title': 'Report', 'group': 'reports',
+     'description': 'Generate and export reports across logs.'},
+    {'key': 'qa-review', 'title': 'QA Review', 'group': 'qa reviews',
+     'description': 'Quality assurance review dashboard.'},
 ]
 
 # Master list of schedules (1023-Q-0001/L4), grouped for the "List of
@@ -198,6 +208,9 @@ def main_menu(request):
 
     equipment_log = _resolve(next(m for m in MODULES if m['key'] == 'equipment-log'))
     analytics = _resolve(next(m for m in MODULES if m['key'] == 'analytics'))
+    help_tile = _resolve(next(m for m in MODULES if m['key'] == 'help'))
+    report_tile = _resolve(next(m for m in MODULES if m['key'] == 'report'))
+    qa_review_tile = _resolve(next(m for m in MODULES if m['key'] == 'qa-review'))
     category_tiles = [
         {
             'title': c['title'],
@@ -211,8 +224,19 @@ def main_menu(request):
     return render(
         request,
         'main_menu.html',
-        {'greeting': _greeting(), 'category': None, 'items': [equipment_log] + category_tiles + [analytics]},
+        {'greeting': _greeting(), 'category': None,
+         'items': [equipment_log] + category_tiles + [analytics, help_tile, report_tile, qa_review_tile]},
     )
+
+
+def help_page(request):
+    resolved = {m['key']: _resolve(m) for m in MODULES}
+    categories = [
+        {'title': c['title'], 'items': [resolved[m['key']] for m in MODULES if m['group'] == c['key']]}
+        for c in CATEGORIES
+    ]
+    other = [resolved[key] for key in ('analytics', 'report', 'qa-review')]
+    return render(request, 'help.html', {'changelog': CHANGELOG, 'categories': categories, 'other': other})
 
 
 def module_placeholder(request, slug):

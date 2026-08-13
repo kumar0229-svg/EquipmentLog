@@ -191,7 +191,8 @@ def _export_csv(entries):
     writer.writerow(
         [
             'Equipment', 'Area', 'Usage Type', 'Product', 'Batch No', 'Process Sub Activity',
-            'Cleaning SOP No', 'Type of Cleaning', 'Maintenance SOP No', 'Maintenance Type',
+            'Cleaning SOP No', 'Type of Cleaning', 'Adhered Material Removed Within 24 Hours',
+            'Maintenance SOP No', 'Maintenance Type',
             'Frequency', 'PM Process Order No', 'Qualification Protocol No', 'SAP Document No',
             'Start Date', 'Start Time', 'Started By', 'End Date', 'End Time', 'Ended By',
             'Duration', 'Status', 'Remarks',
@@ -203,6 +204,7 @@ def _export_csv(entries):
                 e.equipment.code, e.area_snapshot, e.usage_type.name, e.product or '', e.batch_no,
                 e.get_process_sub_type_display() if e.process_sub_type else '',
                 e.cleaning_sop_no, e.get_cleaning_type_display() if e.cleaning_type else '',
+                e.get_adhered_material_removed_display() if e.adhered_material_removed else '',
                 e.equipment_maintenance_sop_no,
                 e.get_maintenance_type_display() if e.maintenance_type else '',
                 e.get_maintenance_frequency_display() if e.maintenance_frequency else '',

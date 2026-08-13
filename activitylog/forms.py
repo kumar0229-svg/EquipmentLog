@@ -17,13 +17,13 @@ from .models import ActivityLogEntry, CleaningType, MaintenanceType, ProcessSubT
 # type dependent) — being listed here only means "possibly visible for this
 # usage type".
 USAGE_TYPE_FIELDS = {
-    'Process': ['product', 'batch_no', 'process_sub_type', 'sap_document_no', 'remarks'],
-    'Cleaning': ['cleaning_type', 'batch_no', 'cleaning_sop_no', 'sap_document_no', 'remarks'],
+    'Process': ['product', 'batch_no', 'process_sub_type', 'remarks'],
+    'Cleaning': ['cleaning_type', 'batch_no', 'cleaning_sop_no', 'adhered_material_removed', 'remarks'],
     'Maintenance': [
         'equipment_maintenance_sop_no', 'maintenance_type', 'maintenance_frequency',
         'pm_process_order_no', 'sap_document_no', 'remarks',
     ],
-    'Qualification': ['qualification_protocol_no', 'sap_document_no', 'remarks'],
+    'Qualification': ['qualification_protocol_no', 'remarks'],
 }
 
 
@@ -41,7 +41,7 @@ def usage_type_field_map():
 
 def equipment_context_map():
     """{equipment_id (str): {"code", "state", "state_label", "open_entry_url",
-    "busy_no_entry", "next_actions", "products"}}.
+    "busy_no_entry", "next_actions", "products", "last_product_id"}}.
 
     Feeds the Start Activity page's JS so it can show the equipment's current
     status next to the picker, steer straight to stopping it if an activity is
@@ -51,11 +51,17 @@ def equipment_context_map():
     (rules.get_during_states()) with no open entry to link to (state was set some
     other way, e.g. directly in admin).
 
-    "products" is {product_id (str): procedure_no} from the product's master
-    ProductEquipment mapping — an empty dict means no mapping has been
-    configured for this equipment yet, in which case the Process product
-    picker is left unrestricted (same "no mapping yet" convention as
-    usage_type_field_map).
+    "products" is {product_id (str): {"name", "cleaning_sop_no"}} from the
+    product's master ProductEquipment mapping — an empty dict means no
+    mapping has been configured for this equipment yet, in which case the
+    Process product picker is left unrestricted (same "no mapping yet"
+    convention as usage_type_field_map). cleaning_sop_no is the one SOP that
+    covers both running the product on this equipment and cleaning it
+    afterwards.
+
+    "last_product_id" is the product (str id, or None) of the most recently
+    started Process activity on this equipment — the Cleaning SOP No suggested
+    on Start Activity is that product's cleaning_sop_no from "products".
     """
     open_entry_by_equipment = dict(
         ActivityLogEntry.objects.filter(equipment__active=True, end_date__isnull=True)
@@ -63,10 +69,19 @@ def equipment_context_map():
     )
     usage_type_ids = dict(EquipmentUsageType.objects.filter(active=True).values_list('name', 'id'))
     products_by_equipment = {}
-    for equipment_id, product_id, procedure_no in ProductEquipment.objects.filter(
+    for equipment_id, product_id, name, cleaning_sop_no in ProductEquipment.objects.filter(
         equipment__active=True, product__active=True
-    ).values_list('equipment_id', 'product_id', 'procedure_no'):
-        products_by_equipment.setdefault(equipment_id, {})[str(product_id)] = procedure_no
+    ).values_list('equipment_id', 'product_id', 'product__name', 'cleaning_sop_no'):
+        products_by_equipment.setdefault(equipment_id, {})[str(product_id)] = {
+            'name': name,
+            'cleaning_sop_no': cleaning_sop_no,
+        }
+    last_product_by_equipment = dict(
+        ActivityLogEntry.objects.filter(equipment__active=True, usage_type__name='Process')
+        .order_by('equipment_id', '-start_date', '-start_time', '-id')
+        .distinct('equipment_id')
+        .values_list('equipment_id', 'product_id')
+    )
     return {
         str(e.id): {
             'code': e.code,
@@ -87,6 +102,11 @@ def equipment_context_map():
                 if usage_type_name in usage_type_ids
             ],
             'products': products_by_equipment.get(e.id, {}),
+            'last_product_id': (
+                str(last_product_by_equipment[e.id])
+                if last_product_by_equipment.get(e.id) is not None
+                else None
+            ),
         }
         for e in Equipment.objects.filter(active=True).select_related('equipment_type')
     }
@@ -109,6 +129,7 @@ class StartActivityForm(forms.ModelForm):
             'batch_no',
             'process_sub_type',
             'cleaning_sop_no',
+            'adhered_material_removed',
             'equipment_maintenance_sop_no',
             'maintenance_type',
             'maintenance_frequency',
@@ -165,15 +186,32 @@ class StartActivityForm(forms.ModelForm):
         elif usage_type_name == 'Cleaning':
             if not cleaned.get('cleaning_type'):
                 self.add_error('cleaning_type', 'Select a type of cleaning.')
-            elif cleaned['cleaning_type'] == CleaningType.Q:
-                cleaned['batch_no'] = ''
-                cleaned['cleaning_sop_no'] = ''
+            else:
+                if cleaned['cleaning_type'] == CleaningType.Q:
+                    cleaned['batch_no'] = ''
+                    cleaned['cleaning_sop_no'] = ''
+                if cleaned['cleaning_type'] not in (CleaningType.A, CleaningType.B):
+                    cleaned['adhered_material_removed'] = ''
+                sop = cleaned.get('cleaning_sop_no')
+                if sop:
+                    available_sops = set(
+                        equipment.product_links.exclude(cleaning_sop_no='')
+                        .values_list('cleaning_sop_no', flat=True)
+                    )
+                    if available_sops and sop not in available_sops:
+                        self.add_error(
+                            'cleaning_sop_no',
+                            f'{sop} is not a Cleaning SOP No defined for {equipment.code} '
+                            'in the product master.',
+                        )
         elif usage_type_name == 'Maintenance':
             if not cleaned.get('maintenance_type'):
                 self.add_error('maintenance_type', 'Select Breakdown / Repair or Preventive Maintenance.')
             elif cleaned['maintenance_type'] == MaintenanceType.BREAKDOWN:
                 cleaned['maintenance_frequency'] = ''
                 cleaned['pm_process_order_no'] = ''
+            if not cleaned.get('sap_document_no'):
+                self.add_error('sap_document_no', 'SAP Document No is required for Maintenance.')
 
         if self.errors:
             return cleaned

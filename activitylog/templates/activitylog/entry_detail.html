@@ -14,6 +14,7 @@
     {% if entry.process_sub_type %}<dt>Process Sub Activity</dt><dd>{{ entry.get_process_sub_type_display }}</dd>{% endif %}
     {% if entry.cleaning_sop_no %}<dt>Cleaning SOP No</dt><dd>{{ entry.cleaning_sop_no }}</dd>{% endif %}
     {% if entry.cleaning_type %}<dt>Type of Cleaning</dt><dd>{{ entry.get_cleaning_type_display }}</dd>{% endif %}
+    {% if entry.adhered_material_removed %}<dt>Adhered Material Removed Within 24 Hours</dt><dd>{{ entry.get_adhered_material_removed_display }}</dd>{% endif %}
     {% if entry.equipment_maintenance_sop_no %}<dt>Maintenance SOP No</dt><dd>{{ entry.equipment_maintenance_sop_no }}</dd>{% endif %}
     {% if entry.maintenance_type %}<dt>Maintenance Type</dt><dd>{{ entry.get_maintenance_type_display }}</dd>{% endif %}
     {% if entry.maintenance_frequency %}<dt>Frequency</dt><dd>{{ entry.get_maintenance_frequency_display }}</dd>{% endif %}

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}BMR Issuance Log{% endblock %}
+
+{% block content %}
+<h1>BMR Issuance Log</h1>
+
+{% if user.is_qa or user.is_admin_role %}
+<div class="page-actions actions">
+  <a class="btn primary" href="{% url 'bmr_issue' %}">Issue BMR</a>
+</div>
+{% endif %}
+
+<form method="get" class="filters">
+  <p>{{ form.batch_type.label_tag }} {{ form.batch_type }}</p>
+  <p>{{ form.product.label_tag }} {{ form.product }}</p>
+  <p>{{ form.date_from.label_tag }} {{ form.date_from }}</p>
+  <p>{{ form.date_to.label_tag }} {{ form.date_to }}</p>
+  <button type="submit" class="primary">Filter</button>
+  <a class="btn" href="?{{ query }}&export=csv">Export CSV</a>
+  <a class="btn" href="{% url 'bmr_entry_list_print' %}?{{ query }}" target="_blank">Print</a>
+</form>
+
+<div class="card">
+  <table class="grid">
+    <thead>
+      <tr>
+        <th>Batch No</th>
+        <th>Type of Batch</th>
+        <th>Process Order No</th>
+        <th>Product Name</th>
+        <th>Master Document No</th>
+        <th>Production Block</th>
+        <th>Issued To</th>
+        <th>Issued</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for entry in entries %}
+      <tr>
+        <td><a href="{% url 'bmr_entry_detail' entry.pk %}">{{ entry.batch_no }}</a></td>
+        <td>{{ entry.get_batch_type_display }}</td>
+        <td>{{ entry.process_order_no }}</td>
+        <td>{{ entry.product.name }}</td>
+        <td>{{ entry.master_document_no }}</td>
+        <td>{{ entry.production_block.name }}</td>
+        <td>{{ entry.issued_to.get_full_name|default:entry.issued_to.username }}</td>
+        <td>{{ entry.issued_date|date:"d.m.Y" }} {{ entry.issued_time|time:"H.i" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8">No entries match these filters.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

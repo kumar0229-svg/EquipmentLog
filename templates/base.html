@@ -12,7 +12,7 @@
   <a class="brand" href="{% url 'main_menu' %}">
     <img src="{% static 'img/cipla-logo.svg' %}" alt="Cipla" class="brand-logo">
     <span>CIPLog</span>
-    <span class="brand-version">v0.3</span>
+    <span class="brand-version">v{{ app_version }}</span>
   </a>
   {% if user.is_authenticated %}
     {% if not on_main_menu %}

@@ -1,3 +1,6 @@
+from core.version import APP_VERSION
+
+
 def nav_section(request):
     """Whether the current page is the main menu.
 
@@ -5,3 +8,7 @@ def nav_section(request):
     shows a "Back to Main Menu" link — the menu's own tiles are the nav.
     """
     return {'on_main_menu': request.path_info == '/'}
+
+
+def app_version(request):
+    return {'app_version': APP_VERSION}

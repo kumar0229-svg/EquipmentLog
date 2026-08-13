@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Issue BMR{% endblock %}
+
+{% block content %}
+<h1>Issue BMR</h1>
+<div class="card narrow">
+  <form method="post">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for field in form %}
+    <p>
+      {{ field.label_tag }}
+      {{ field }}
+      {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
+      {{ field.errors }}
+    </p>
+    {% endfor %}
+    <div class="actions">
+      <button type="submit" class="primary">Issue BMR</button>
+      <a class="btn" href="{% url 'bmr_log' %}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

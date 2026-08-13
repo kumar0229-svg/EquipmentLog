@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Help{% endblock %}
+
+{% block content %}
+<h1>Help</h1>
+<p class="muted">You're running CIPLog build v{{ app_version }}.</p>
+
+<h2>Features</h2>
+<p class="muted">Every module in CIPLog, grouped the same way as the main menu. Available modules are linked; anything still in progress is marked "Coming soon".</p>
+
+<div class="help-groups">
+  {% for group in categories %}
+    <section class="help-group">
+      <h3>{{ group.title }}</h3>
+      <ul class="help-feature-list">
+        {% for item in group.items %}
+          <li>
+            {% if item.available %}
+              <a href="{{ item.url }}">{{ item.title }}</a>
+            {% else %}
+              <span>{{ item.title }}</span>
+              <span class="pill">Coming soon</span>
+            {% endif %}
+            {% if item.description %}<p class="muted">{{ item.description }}</p>{% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endfor %}
+
+  <section class="help-group">
+    <h3>Other</h3>
+    <ul class="help-feature-list">
+      {% for item in other %}
+        <li>
+          {% if item.available %}
+            <a href="{{ item.url }}">{{ item.title }}</a>
+          {% else %}
+            <span>{{ item.title }}</span>
+            <span class="pill">Coming soon</span>
+          {% endif %}
+          {% if item.description %}<p class="muted">{{ item.description }}</p>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+
+<h2>What's new</h2>
+<ul>
+  {% for entry in changelog %}
+    <li><strong>v{{ entry.version }}</strong> — {{ entry.notes }}</li>
+  {% endfor %}
+</ul>
+
+<p class="muted">Need help with a specific module? Full support documentation is coming soon — for now, reach out to your QA/IT admin.</p>
+{% endblock %}

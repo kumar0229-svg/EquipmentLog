@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Equipment Activity Log — Print</title>
+<title>BMR Issuance Log — Print</title>
 <style>
   @page { size: A4 landscape; margin: 10mm; }
   * { box-sizing: border-box; }
@@ -71,8 +71,8 @@
       <div class="print-header-left">
         <img src="{% static 'img/cipla-logo.svg' %}" alt="Cipla" class="print-logo">
         <div>
-          <p class="print-title">EQUIPMENT ACTIVITY LOG</p>
-          <p class="print-location">Location: {{ location }} &nbsp;|&nbsp; Equipment No: {{ equipment.code }}</p>
+          <p class="print-title">BMR ISSUANCE LOG</p>
+          <p class="print-location">Location: {{ location }} &nbsp;|&nbsp; Type of Batch: {{ batch_type_label }}</p>
         </div>
       </div>
       <div class="print-meta">
@@ -82,59 +82,48 @@
       </div>
     </div>
 
-    <div class="print-filters"><strong>Equipment:</strong> {{ equipment.code }}{% if equipment.name %} — {{ equipment.name }}{% endif %} &nbsp;|&nbsp; <strong>Filters applied:</strong> {{ filters_display }}</div>
+    <div class="print-filters"><strong>Type of Batch:</strong> {{ batch_type_label }} &nbsp;|&nbsp; <strong>Filters applied:</strong> {{ filters_display }}</div>
 
     <table class="print-log">
       <colgroup>
-        <col style="width: 9%">
-        <col style="width: 10%">
-        <col style="width: 9%">
-        <col style="width: 10%">
-        <col style="width: 10%">
-        <col style="width: 8%">
-        <col style="width: 10%">
-        <col style="width: 8%">
-        <col style="width: 7%">
-        <col style="width: 19%">
+        <col style="width: 12%">
+        <col style="width: 12%">
+        <col style="width: 16%">
+        <col style="width: 16%">
+        <col style="width: 14%">
+        <col style="width: 15%">
+        <col style="width: 15%">
       </colgroup>
       <thead>
         <tr>
-          <th>Usage Type</th>
-          <th>Product</th>
           <th>Batch No</th>
-          <th>Adhered Material Removed (24 Hrs)</th>
-          <th>Start</th>
-          <th>Started By</th>
-          <th>End</th>
-          <th>Completed By</th>
-          <th>Duration</th>
-          <th>Equipment Status</th>
+          <th>Process Order No</th>
+          <th>Product Name</th>
+          <th>Master Document No</th>
+          <th>Production Block</th>
+          <th>Issued To</th>
+          <th>Issued</th>
         </tr>
       </thead>
       <tbody>
         {% for entry in page_rows %}
         <tr>
-          <td>{{ entry.usage_type.name }}</td>
-          <td>{{ entry.product|default_if_none:"" }}</td>
           <td>{{ entry.batch_no }}</td>
-          <td>{{ entry.get_adhered_material_removed_display|default:"" }}</td>
-          <td>{{ entry.start_date|date:"d.m.Y" }} {{ entry.start_time|time:"H.i" }}</td>
-          <td>{{ entry.start_by.username }}</td>
-          <td>
-            {% if entry.end_date %}{{ entry.end_date|date:"d.m.Y" }} {{ entry.end_time|time:"H.i" }}{% else %}In progress{% endif %}
-          </td>
-          <td>{{ entry.end_by.username|default:"" }}</td>
-          <td>{{ entry.duration_display }}</td>
-          <td>{{ entry.equipment_status_at_entry.label|default:"" }}</td>
+          <td>{{ entry.process_order_no }}</td>
+          <td>{{ entry.product.name }}</td>
+          <td>{{ entry.master_document_no }}</td>
+          <td>{{ entry.production_block.name }}</td>
+          <td>{{ entry.issued_to.get_full_name|default:entry.issued_to.username }}</td>
+          <td>{{ entry.issued_date|date:"d.m.Y" }} {{ entry.issued_time|time:"H.i" }}</td>
         </tr>
         {% empty %}
-        <tr><td colspan="10">No entries match these filters.</td></tr>
+        <tr><td colspan="7">No entries match these filters.</td></tr>
         {% endfor %}
       </tbody>
     </table>
 
     <div class="print-footer">
-      <span>CIPLog — Equipment Activity Log</span>
+      <span>CIPLog — BMR Issuance Log</span>
       <span>Page {{ forloop.counter }} of {{ pages|length }}</span>
     </div>
   </div>

@@ -27,6 +27,11 @@ class CleaningType(models.TextChoices):
     G = 'G', 'Type G'
 
 
+class YesNo(models.TextChoices):
+    YES = 'YES', 'Yes'
+    NO = 'NO', 'No'
+
+
 class ProcessSubType(models.TextChoices):
     REACTION = 'REACTION', 'Reaction (Reactor Only)'
     OTHER_EQUIPMENT = 'OTHER_EQUIPMENT', 'Equipment Other Than Reactor'
@@ -109,6 +114,9 @@ class ActivityLogEntry(models.Model):
     cleaning_sop_no = models.CharField('Cleaning SOP No', max_length=100, blank=True)
     cleaning_type = models.CharField(
         'Type of Cleaning', max_length=1, choices=CleaningType.choices, blank=True
+    )
+    adhered_material_removed = models.CharField(
+        'Adhered Material Removed Within 24 Hours', max_length=3, choices=YesNo.choices, blank=True
     )
 
     # Maintenance

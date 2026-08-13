@@ -105,6 +105,7 @@ class StartActivityViewTests(ActivityLogTestCase):
                 'batch_no': 'B-1',
                 'cleaning_sop_no': 'SOP-1',
                 'cleaning_type': 'A',
+                'adhered_material_removed': 'YES',
                 'remarks': '',
             },
         )
@@ -112,6 +113,7 @@ class StartActivityViewTests(ActivityLogTestCase):
         entry = ActivityLogEntry.objects.get(equipment=self.equipment)
         self.assertEqual(entry.status, EntryStatus.IN_PROGRESS)
         self.assertTrue(entry.is_open)
+        self.assertEqual(entry.adhered_material_removed, 'YES')
         self.equipment.refresh_from_db()
         self.assertEqual(self.equipment.state, EquipmentState.UNDER_CLEANING)
 
@@ -163,10 +165,69 @@ class StartActivityViewTests(ActivityLogTestCase):
         self.equipment.refresh_from_db()
         self.assertEqual(self.equipment.state, EquipmentState.UNDER_CLEANING)
 
-    def test_type_g_cleaning_also_allowed_from_plain_to_be_cleaned(self):
-        # Type G isn't limited to the post-maintenance status — it's offered
-        # any time equipment is generically "To Be Cleaned" (e.g. after
-        # Qualification or Process), not just after Maintenance.
+    def test_cleaning_sop_no_must_be_in_product_master_when_master_has_entries(self):
+        product = Product.objects.create(name='Product-Mapped')
+        ProductEquipment.objects.create(
+            product=product, equipment=self.equipment, cleaning_sop_no='SOP-MASTER'
+        )
+
+        response = self.client.post(
+            reverse('start_activity'),
+            {
+                'equipment': self.equipment.pk,
+                'usage_type': self.cleaning.pk,
+                'cleaning_type': 'B',
+                'cleaning_sop_no': 'SOP-NOT-IN-MASTER',
+                'remarks': '',
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'is not a Cleaning SOP No defined for')
+        self.assertFalse(ActivityLogEntry.objects.filter(equipment=self.equipment).exists())
+
+    def test_cleaning_sop_no_from_product_master_is_accepted(self):
+        product = Product.objects.create(name='Product-Mapped')
+        ProductEquipment.objects.create(
+            product=product, equipment=self.equipment, cleaning_sop_no='SOP-MASTER'
+        )
+
+        response = self.client.post(
+            reverse('start_activity'),
+            {
+                'equipment': self.equipment.pk,
+                'usage_type': self.cleaning.pk,
+                'cleaning_type': 'B',
+                'cleaning_sop_no': 'SOP-MASTER',
+                'remarks': '',
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        entry = ActivityLogEntry.objects.get(equipment=self.equipment)
+        self.assertEqual(entry.cleaning_sop_no, 'SOP-MASTER')
+
+    def test_cleaning_sop_no_unrestricted_when_no_master_entries_configured(self):
+        # No ProductEquipment rows have a cleaning_sop_no set, so the field
+        # isn't gated yet — same "not configured" leniency as the Process
+        # product picker.
+        response = self.client.post(
+            reverse('start_activity'),
+            {
+                'equipment': self.equipment.pk,
+                'usage_type': self.cleaning.pk,
+                'cleaning_type': 'B',
+                'cleaning_sop_no': 'SOP-ANYTHING',
+                'remarks': '',
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        entry = ActivityLogEntry.objects.get(equipment=self.equipment)
+        self.assertEqual(entry.cleaning_sop_no, 'SOP-ANYTHING')
+
+    def test_type_g_cleaning_is_not_offered_from_plain_to_be_cleaned(self):
+        # Type G is strictly post-maintenance — it requires
+        # TO_BE_CLEANED_AFTER_MAINTENANCE specifically, not the generic
+        # "To Be Cleaned" status equipment reaches after Process or
+        # Qualification. Type A / Type B cover that case instead.
         self.equipment.state = EquipmentState.TO_BE_CLEANED
         self.equipment.save(update_fields=['state'])
 
@@ -179,9 +240,9 @@ class StartActivityViewTests(ActivityLogTestCase):
                 'remarks': '',
             },
         )
-        self.assertEqual(response.status_code, 302)
-        self.equipment.refresh_from_db()
-        self.assertEqual(self.equipment.state, EquipmentState.UNDER_CLEANING)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'requires status')
+        self.assertFalse(ActivityLogEntry.objects.filter(equipment=self.equipment).exists())
 
     def test_process_on_reactor_forces_reaction_sub_type(self):
         self.equipment.state = EquipmentState.CLEANED_AND_QA_CERTIFIED
@@ -335,12 +396,16 @@ class StartActivityViewTests(ActivityLogTestCase):
                 'equipment': self.equipment.pk,
                 'usage_type': self.cleaning.pk,
                 'cleaning_type': 'G',
+                # Not applicable to Type G — should be dropped even if submitted.
+                'adhered_material_removed': 'YES',
                 'remarks': '',
             },
         )
         self.assertEqual(response.status_code, 302)
         self.equipment.refresh_from_db()
         self.assertEqual(self.equipment.state, EquipmentState.UNDER_CLEANING)
+        entry = ActivityLogEntry.objects.get(equipment=self.equipment, cleaning_type='G')
+        self.assertEqual(entry.adhered_material_removed, '')
 
     def test_qa_certification_also_allowed_from_cleaned_after_maintenance(self):
         # Per the Activity rules table, QA Certification's prior status can be
@@ -379,12 +444,47 @@ class StartActivityViewTests(ActivityLogTestCase):
                 'equipment': self.equipment.pk,
                 'usage_type': self.maintenance.pk,
                 'maintenance_type': MaintenanceType.BREAKDOWN,
+                'sap_document_no': 'SAP-123',
                 'remarks': '',
             },
         )
         self.assertEqual(response.status_code, 302)
         self.equipment.refresh_from_db()
         self.assertEqual(self.equipment.state, EquipmentState.UNDER_MAINTENANCE)
+
+    def test_maintenance_requires_sap_document_no(self):
+        self.equipment.state = EquipmentState.CLEANED_AFTER_MAINTENANCE
+        self.equipment.save(update_fields=['state'])
+
+        response = self.client.post(
+            reverse('start_activity'),
+            {
+                'equipment': self.equipment.pk,
+                'usage_type': self.maintenance.pk,
+                'maintenance_type': MaintenanceType.BREAKDOWN,
+                'remarks': '',
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'SAP Document No is required for Maintenance.')
+
+    def test_context_map_suggests_cleaning_sop_from_last_process_product(self):
+        product = Product.objects.create(name='Product-1')
+        ProductEquipment.objects.create(
+            product=product, equipment=self.equipment, cleaning_sop_no='SOP-P1'
+        )
+        self.make_entry(
+            product=product, process_sub_type=ProcessSubType.REACTION,
+            end_date='2026-01-02', end_time='09:00',
+        )
+
+        response = self.client.get(reverse('start_activity'))
+        equipment_context = response.context['equipment_context_map'][str(self.equipment.pk)]
+        self.assertEqual(equipment_context['last_product_id'], str(product.pk))
+        self.assertEqual(
+            equipment_context['products'][str(product.pk)],
+            {'name': 'Product-1', 'cleaning_sop_no': 'SOP-P1'},
+        )
 
 
 class StopActivityViewTests(ActivityLogTestCase):

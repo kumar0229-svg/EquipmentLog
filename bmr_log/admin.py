@@ -1,3 +1,10 @@
 from django.contrib import admin
 
-# Register your models here.
+from .models import BMRIssuanceEntry
+
+
+@admin.register(BMRIssuanceEntry)
+class BMRIssuanceEntryAdmin(admin.ModelAdmin):
+    list_display = ['batch_no', 'batch_type', 'product', 'process_order_no', 'production_block', 'issued_to', 'issued_date']
+    list_filter = ['batch_type', 'production_block']
+    search_fields = ['batch_no', 'process_order_no', 'master_document_no', 'product__name']
