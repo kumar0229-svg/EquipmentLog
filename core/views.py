@@ -169,7 +169,21 @@ SCHEDULES = [
 ]
 
 
+# One accent colour per module group, so the landing page reads as a set of
+# distinct destinations rather than a wall of identical blue tiles.
+GROUP_COLORS = {
+    'logs': 'blue',
+    'forms': 'violet',
+    'schedulers': 'orange',
+    'analytics': 'pink',
+    'helps': 'cyan',
+    'reports': 'green',
+    'qa reviews': 'red',
+}
+
+
 def _resolve(module):
+    module = {**module, 'color': GROUP_COLORS.get(module['group'], 'blue')}
     if module.get('url_name'):
         return {**module, 'url': reverse(module['url_name']), 'available': True}
     return {**module, 'url': reverse('module_placeholder', args=[module['key']]), 'available': False}
@@ -215,6 +229,7 @@ def main_menu(request):
         {
             'title': c['title'],
             'group': c['key'],
+            'color': GROUP_COLORS[c['key']],
             'url': f"{reverse('main_menu')}?filter={c['key']}",
             'available': True,
             'count': sum(1 for m in MODULES if m['group'] == c['key']),

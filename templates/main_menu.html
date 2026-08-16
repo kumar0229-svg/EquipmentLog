@@ -3,12 +3,12 @@
 {% block body_class %}main-menu-page{% endblock %}
 
 {% block content %}
-<div class="menu-hero">
+<div class="menu-hero{% if not category %} menu-hero-band{% endif %}">
   <h1>{{ greeting }}{% if user.is_authenticated %}, {{ user.first_name|default:user.username }}{% endif %}</h1>
   {% if category %}
     <p class="muted"><a href="{% url 'main_menu' %}">&larr; Back to menu</a></p>
   {% else %}
-    <p class="muted">Pick a category to get started.</p>
+    <p>Pick a category to get started.</p>
   {% endif %}
 </div>
 
@@ -25,7 +25,7 @@
 
 <div class="module-grid">
   {% for m in items %}
-    <a href="{{ m.url }}" class="module-tile{% if not m.available %} is-placeholder{% endif %}">
+    <a href="{{ m.url }}" class="module-tile{% if not m.available %} is-placeholder{% endif %}" data-color="{{ m.color|default:'blue' }}">
       <span class="module-tile-icon" aria-hidden="true">
         {% if m.key == 'equipment-log' %}
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="1" width="6" height="2.5" rx="0.5"/><line x1="12" y1="3.5" x2="12" y2="15"/><ellipse cx="12" cy="8" rx="6" ry="2.2"/><path d="M6 8v8c0 1.5 2.7 2.6 6 2.6s6-1.1 6-2.6V8"/><path d="M9 14l3 1.5 3-1.5"/></svg>
