@@ -2,7 +2,8 @@
 {% block title %}{{ entry.batch_no }}{% endblock %}
 
 {% block content %}
-<h1>{{ entry.batch_no }}</h1>
+<h1>{{ entry.batch_no }} <span class="pill state-{{ entry.status }}">{{ entry.get_status_display }}</span></h1>
+
 <div class="card narrow">
   <dl class="detail">
     <dt>Batch No</dt><dd>{{ entry.batch_no }}</dd>
@@ -12,12 +13,126 @@
     <dt>Master Document No</dt><dd>{{ entry.master_document_no }}</dd>
     <dt>Production Block</dt><dd>{{ entry.production_block.name }}</dd>
     <dt>Issued To</dt><dd>{{ entry.issued_to.get_full_name|default:entry.issued_to.username }}</dd>
-    <dt>Issued By</dt><dd>{{ entry.issued_by.get_full_name|default:entry.issued_by.username }}</dd>
-    <dt>Issued</dt><dd>{{ entry.issued_date|date:"d.m.Y" }} {{ entry.issued_time|time:"H.i" }}</dd>
     {% if entry.remarks %}<dt>Remarks</dt><dd>{{ entry.remarks|linebreaksbr }}</dd>{% endif %}
   </dl>
-  <div class="actions">
-    <a class="btn" href="{% url 'bmr_log' %}">Back to BMR Issuance Log</a>
-  </div>
+</div>
+
+<div class="card narrow">
+  <h2>Progress</h2>
+  <ol class="bmr-timeline">
+    <li class="done">
+      <strong>1. Prepared</strong> — {{ entry.prepared_by.get_full_name|default:entry.prepared_by.username }},
+      {{ entry.created_at|date:"d.m.Y H:i" }}
+    </li>
+    <li class="{% if entry.received_by %}done{% endif %}">
+      <strong>2. Verified &amp; Received (Production)</strong>
+      {% if entry.received_by %}
+        — {{ entry.received_by.get_full_name|default:entry.received_by.username }}, {{ entry.received_at|date:"d.m.Y H:i" }}
+      {% else %}
+        — pending
+      {% endif %}
+    </li>
+    <li class="{% if entry.issued_by %}done{% endif %}">
+      <strong>3. Issued (QA)</strong>
+      {% if entry.issued_by %}
+        — {{ entry.issued_by.get_full_name|default:entry.issued_by.username }}, {{ entry.issued_date|date:"d.m.Y" }} {{ entry.issued_time|time:"H.i" }}
+      {% else %}
+        — pending
+      {% endif %}
+    </li>
+    <li class="{% if entry.returned_by %}done{% endif %}">
+      <strong>4. Returned (Production)</strong>
+      {% if entry.returned_by %}
+        — {{ entry.returned_by.get_full_name|default:entry.returned_by.username }}, {{ entry.returned_at|date:"d.m.Y H:i" }}
+      {% else %}
+        — pending
+      {% endif %}
+    </li>
+    <li class="{% if entry.verified_by %}done{% endif %}">
+      <strong>5. Verified (QA)</strong>
+      {% if entry.verified_by %}
+        — {{ entry.verified_by.get_full_name|default:entry.verified_by.username }}, {{ entry.verified_at|date:"d.m.Y H:i" }}
+      {% else %}
+        — pending
+      {% endif %}
+    </li>
+    <li class="{% if entry.received_back_by %}done{% endif %}">
+      <strong>6. Received back (QA)</strong>
+      {% if entry.received_back_by %}
+        — {{ entry.received_back_by.get_full_name|default:entry.received_back_by.username }}, {{ entry.received_back_at|date:"d.m.Y H:i" }}
+      {% else %}
+        — pending
+      {% endif %}
+    </li>
+  </ol>
+</div>
+
+<div class="card narrow">
+  <h2>Action</h2>
+
+  {% if can_verify_receive %}
+    <p>Your token — read it and enter it below to confirm receipt. This value is shown only to you.</p>
+    <p class="token-reveal">{{ receive_token }}</p>
+    <form method="post" action="{% url 'bmr_verify_receive' entry.pk %}">
+      {% csrf_token %}
+      {{ receive_form.non_field_errors }}
+      <p>
+        {{ receive_form.token.label_tag }} {{ receive_form.token }}
+        {{ receive_form.token.errors }}
+      </p>
+      <button type="submit" class="primary">Verify &amp; Receive</button>
+    </form>
+
+  {% elif can_mark_issued %}
+    <p>Production has verified and received this BMR. Confirm it as Issued.</p>
+    <form method="post" action="{% url 'bmr_mark_issued' entry.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="primary">Mark Issued</button>
+    </form>
+
+  {% elif can_mark_returned %}
+    <p>Once execution is complete, mark this BMR as returned to QA.</p>
+    <form method="post" action="{% url 'bmr_mark_returned' entry.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="primary">Mark Returned</button>
+    </form>
+
+  {% elif can_verify_return %}
+    <p>Production has returned this BMR. Verify it.</p>
+    <form method="post" action="{% url 'bmr_verify_return' entry.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="primary">Verify Return</button>
+    </form>
+
+  {% elif can_receive_back %}
+    <p>Your token — read it and enter it below to receive this BMR back. This value is shown only to QA.</p>
+    <p class="token-reveal">{{ return_token }}</p>
+    <form method="post" action="{% url 'bmr_receive_back' entry.pk %}">
+      {% csrf_token %}
+      {{ receive_back_form.non_field_errors }}
+      <p>
+        {{ receive_back_form.token.label_tag }} {{ receive_back_form.token }}
+        {{ receive_back_form.token.errors }}
+      </p>
+      <button type="submit" class="primary">Receive Back</button>
+    </form>
+
+  {% elif entry.status == 'CLOSED' %}
+    <p>This BMR has been received back by QA. The log is closed.</p>
+
+  {% else %}
+    <p>
+      {% if entry.status == 'PREPARED' %}Waiting on {{ entry.issued_to.get_full_name|default:entry.issued_to.username }} to verify &amp; receive.
+      {% elif entry.status == 'RECEIVED' %}Waiting on QA to mark this BMR as Issued.
+      {% elif entry.status == 'ISSUED' %}Waiting on {{ entry.issued_to.get_full_name|default:entry.issued_to.username }} to return this BMR.
+      {% elif entry.status == 'RETURNED' %}Waiting on QA to verify the return.
+      {% elif entry.status == 'VERIFIED' %}Waiting on QA to receive this BMR back.
+      {% endif %}
+    </p>
+  {% endif %}
+</div>
+
+<div class="actions">
+  <a class="btn" href="{% url 'bmr_log' %}">Back to BMR Issuance Log</a>
 </div>
 {% endblock %}

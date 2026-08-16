@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block title %}Issue BMR{% endblock %}
+{% block title %}Prepare BMR{% endblock %}
 
 {% block content %}
-<h1>Issue BMR</h1>
+<h1>Prepare BMR</h1>
 <div class="card narrow">
   <form method="post">
     {% csrf_token %}
@@ -16,7 +16,7 @@
     </p>
     {% endfor %}
     <div class="actions">
-      <button type="submit" class="primary">Issue BMR</button>
+      <button type="submit" class="primary">Prepare BMR</button>
       <a class="btn" href="{% url 'bmr_log' %}">Cancel</a>
     </div>
   </form>

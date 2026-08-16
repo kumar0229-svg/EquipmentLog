@@ -12,7 +12,7 @@ class DateInput(forms.DateInput):
     input_type = 'date'
 
 
-class IssueBMRForm(forms.ModelForm):
+class PrepareBMRForm(forms.ModelForm):
     class Meta:
         model = BMRIssuanceEntry
         fields = [
@@ -52,8 +52,19 @@ class IssueBMRForm(forms.ModelForm):
         return value
 
 
+class TokenForm(forms.Form):
+    token = forms.CharField(label='Token', max_length=6)
+
+    def clean_token(self):
+        value = self.cleaned_data['token'].strip()
+        if not value.isdigit() or len(value) != 6:
+            raise forms.ValidationError('Enter the 6-digit token.')
+        return value
+
+
 class EntryFilterForm(forms.Form):
     batch_type = forms.ChoiceField(choices=[('', 'Any type')] + BatchType.choices, required=False)
     product = forms.ModelChoiceField(queryset=Product.objects.filter(active=True), required=False)
     date_from = forms.DateField(required=False, widget=DateInput())
     date_to = forms.DateField(required=False, widget=DateInput())
+    open_only = forms.BooleanField(label='Open entries only', required=False)

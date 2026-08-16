@@ -4,17 +4,19 @@
 {% block content %}
 <h1>BMR Issuance Log</h1>
 
-{% if user.is_qa or user.is_admin_role %}
 <div class="page-actions actions">
-  <a class="btn primary" href="{% url 'bmr_issue' %}">Issue BMR</a>
+  {% if user.is_qa or user.is_admin_role %}
+  <a class="btn primary" href="{% url 'bmr_prepare' %}">Prepare BMR</a>
+  {% endif %}
+  <a class="btn" href="{% url 'bmr_pending_submission' %}">BMRs Pending Submission</a>
 </div>
-{% endif %}
 
 <form method="get" class="filters">
   <p>{{ form.batch_type.label_tag }} {{ form.batch_type }}</p>
   <p>{{ form.product.label_tag }} {{ form.product }}</p>
   <p>{{ form.date_from.label_tag }} {{ form.date_from }}</p>
   <p>{{ form.date_to.label_tag }} {{ form.date_to }}</p>
+  <p>{{ form.open_only }} {{ form.open_only.label_tag }}</p>
   <button type="submit" class="primary">Filter</button>
   <a class="btn" href="?{{ query }}&export=csv">Export CSV</a>
   <a class="btn" href="{% url 'bmr_entry_list_print' %}?{{ query }}" target="_blank">Print</a>
@@ -31,7 +33,7 @@
         <th>Master Document No</th>
         <th>Production Block</th>
         <th>Issued To</th>
-        <th>Issued</th>
+        <th>Status</th>
       </tr>
     </thead>
     <tbody>
@@ -44,7 +46,7 @@
         <td>{{ entry.master_document_no }}</td>
         <td>{{ entry.production_block.name }}</td>
         <td>{{ entry.issued_to.get_full_name|default:entry.issued_to.username }}</td>
-        <td>{{ entry.issued_date|date:"d.m.Y" }} {{ entry.issued_time|time:"H.i" }}</td>
+        <td><span class="pill state-{{ entry.status }}">{{ entry.get_status_display }}</span></td>
       </tr>
       {% empty %}
       <tr><td colspan="8">No entries match these filters.</td></tr>
