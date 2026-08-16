@@ -3,6 +3,7 @@ import datetime
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from accounts.models import Role
 from masters.models import (
@@ -10,6 +11,7 @@ from masters.models import (
     ProductEquipment,
 )
 
+from .expiry import expire_stale_equipment_states
 from .models import ActivityLogEntry, EntryStatus, MaintenanceType, ProcessSubType
 
 User = get_user_model()
@@ -535,3 +537,70 @@ class DashboardViewTests(ActivityLogTestCase):
         entry = self.make_entry()
         response = self.client.get(reverse('dashboard') + f'?stream={self.stream.pk}')
         self.assertContains(response, reverse('stop_activity', args=[entry.pk]))
+
+
+class ExpireStaleEquipmentStatesTests(ActivityLogTestCase):
+    def _set_state(self, equipment, state, days_ago):
+        Equipment.objects.filter(pk=equipment.pk).update(
+            state=state, state_changed_at=timezone.now() - datetime.timedelta(days=days_ago)
+        )
+
+    def test_type_a_expires_to_to_be_cleaned_after_3_days(self):
+        self._set_state(self.equipment, EquipmentState.CLEANED_TYPE_A, days_ago=4)
+        self.assertEqual(expire_stale_equipment_states(), 1)
+        self.equipment.refresh_from_db()
+        self.assertEqual(self.equipment.state, EquipmentState.TO_BE_CLEANED)
+
+    def test_type_a_not_yet_expired_within_3_days(self):
+        self._set_state(self.equipment, EquipmentState.CLEANED_TYPE_A, days_ago=1)
+        self.assertEqual(expire_stale_equipment_states(), 0)
+        self.equipment.refresh_from_db()
+        self.assertEqual(self.equipment.state, EquipmentState.CLEANED_TYPE_A)
+
+    def test_type_b_expires_to_idle_after_6_days(self):
+        self._set_state(self.equipment, EquipmentState.CLEANED_READY_FOR_QA, days_ago=7)
+        expire_stale_equipment_states()
+        self.equipment.refresh_from_db()
+        self.assertEqual(self.equipment.state, EquipmentState.NOT_IN_USE)
+
+    def test_type_g_expires_to_to_be_cleaned_after_maintenance_after_6_days(self):
+        self._set_state(self.equipment, EquipmentState.CLEANED_AFTER_MAINTENANCE, days_ago=7)
+        expire_stale_equipment_states()
+        self.equipment.refresh_from_db()
+        self.assertEqual(self.equipment.state, EquipmentState.TO_BE_CLEANED_AFTER_MAINTENANCE)
+
+    def test_no_state_changed_at_is_left_untouched(self):
+        Equipment.objects.filter(pk=self.equipment.pk).update(
+            state=EquipmentState.CLEANED_TYPE_A, state_changed_at=None
+        )
+        self.assertEqual(expire_stale_equipment_states(), 0)
+        self.equipment.refresh_from_db()
+        self.assertEqual(self.equipment.state, EquipmentState.CLEANED_TYPE_A)
+
+    def test_non_expirable_state_is_left_untouched_regardless_of_age(self):
+        self._set_state(self.equipment, EquipmentState.IN_PROCESS, days_ago=30)
+        self.assertEqual(expire_stale_equipment_states(), 0)
+        self.equipment.refresh_from_db()
+        self.assertEqual(self.equipment.state, EquipmentState.IN_PROCESS)
+
+    def test_expiring_bumps_state_changed_at(self):
+        self._set_state(self.equipment, EquipmentState.CLEANED_TYPE_A, days_ago=10)
+        before = timezone.now()
+        expire_stale_equipment_states()
+        self.equipment.refresh_from_db()
+        self.assertGreaterEqual(self.equipment.state_changed_at, before)
+
+
+class ExpireCleaningValidityMiddlewareTests(ActivityLogTestCase):
+    def setUp(self):
+        super().setUp()
+        self.client.login(username='op1', password='pw-test-12345')
+
+    def test_dashboard_request_sweeps_expired_cleaning_status(self):
+        Equipment.objects.filter(pk=self.equipment.pk).update(
+            state=EquipmentState.CLEANED_TYPE_A,
+            state_changed_at=timezone.now() - datetime.timedelta(days=4),
+        )
+        self.client.get(reverse('dashboard') + f'?stream={self.stream.pk}')
+        self.equipment.refresh_from_db()
+        self.assertEqual(self.equipment.state, EquipmentState.TO_BE_CLEANED)

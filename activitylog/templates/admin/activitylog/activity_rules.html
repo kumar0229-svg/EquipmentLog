@@ -27,6 +27,7 @@
       <th scope="col">Equipment status during activity</th>
       <th scope="col">Equipment status after completion</th>
       <th scope="col">Startable when current status is one of</th>
+      <th scope="col">Validity of "after completion" status</th>
     </tr>
   </thead>
   <tbody>
@@ -37,6 +38,13 @@
       <td>{{ row.during }}</td>
       <td>{{ row.after }}</td>
       <td>{{ row.allowed_from|join:", " }}</td>
+      <td>
+        {% if row.validity_days %}
+          {{ row.validity_days }} day{{ row.validity_days|pluralize }}, then auto-reverts to {{ row.expired_after }}
+        {% else %}
+          Never expires
+        {% endif %}
+      </td>
     </tr>
     {% endfor %}
   </tbody>

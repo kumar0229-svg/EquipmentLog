@@ -75,6 +75,17 @@ class ActivityRuleConfig(models.Model):
         models.CharField(max_length=32, choices=EquipmentState.choices),
         help_text='Equipment statuses this activity can be started from.',
     )
+    validity_days = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text=(
+            'How many days after_state remains valid before it automatically expires into '
+            'expired_state. Blank means after_state never expires on its own.'
+        ),
+    )
+    expired_state = models.CharField(
+        max_length=32, choices=EquipmentState.choices, blank=True,
+        help_text='Equipment state to move to once validity_days has elapsed. Required if validity_days is set.',
+    )
 
     class Meta:
         ordering = ['usage_type__name', 'code']
@@ -83,6 +94,12 @@ class ActivityRuleConfig(models.Model):
 
     def __str__(self):
         return f'{self.usage_type.name} — {self.label}'
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+
+        if bool(self.validity_days) != bool(self.expired_state):
+            raise ValidationError('validity_days and expired_state must be set together, or both left blank.')
 
 
 class ActivityLogEntry(models.Model):

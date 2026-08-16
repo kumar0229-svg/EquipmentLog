@@ -38,7 +38,9 @@ class ActivityRuleConfigAdmin(admin.ModelAdmin):
     """
 
     form = ActivityRuleConfigForm
-    list_display = ['usage_type', 'code', 'label', 'during_state', 'after_state']
+    list_display = [
+        'usage_type', 'code', 'label', 'during_state', 'after_state', 'validity_days', 'expired_state',
+    ]
     list_filter = ['usage_type']
     search_fields = ['code', 'label']
 
@@ -72,6 +74,8 @@ def activity_rules_view(request):
             'during': EquipmentState(rule.during_state).label,
             'after': EquipmentState(rule.after_state).label,
             'allowed_from': sorted(EquipmentState(s).label for s in rule.allowed_prior_states),
+            'validity_days': rule.validity_days,
+            'expired_after': EquipmentState(rule.expired_state).label if rule.expired_state else '',
         }
         for (usage_type_name, code), rule in rules.get_rules_dict().items()
     ]

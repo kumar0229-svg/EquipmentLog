@@ -40,6 +40,8 @@ class ActivityRule:
     during_state: str
     after_state: str
     allowed_prior_states: frozenset
+    validity_days: int | None
+    expired_state: str
 
 
 def _load_rules_dict():
@@ -51,6 +53,8 @@ def _load_rules_dict():
             config.during_state,
             config.after_state,
             frozenset(config.allowed_prior_states),
+            config.validity_days,
+            config.expired_state,
         )
         for config in ActivityRuleConfig.objects.select_related('usage_type').all()
     }

@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 
 class AreaType(models.TextChoices):
@@ -112,6 +113,10 @@ class Equipment(models.Model):
     state = models.CharField(
         max_length=32, choices=EquipmentState.choices, default=EquipmentState.NOT_IN_USE
     )
+    state_changed_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text='When `state` last changed — the anchor point for cleaning validity expiry.',
+    )
     active = models.BooleanField(default=True)
 
     capacity = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
@@ -125,6 +130,25 @@ class Equipment(models.Model):
 
     def __str__(self):
         return f'{self.code} — {self.equipment_type.name}'
+
+    def save(self, *args, **kwargs):
+        """Stamp state_changed_at whenever `state` actually changes — the
+        anchor cleaning-validity expiry (activitylog.expiry) counts from.
+        Handles both `update_fields=['state']` saves (activitylog.views
+        start_activity/stop_activity) and full-form admin saves without
+        every call site having to remember to set it.
+        """
+        update_fields = kwargs.get('update_fields')
+        is_new = self.pk is None
+        state_may_change = update_fields is None or 'state' in update_fields
+        if not is_new and state_may_change:
+            old_state = Equipment.objects.filter(pk=self.pk).values_list('state', flat=True).first()
+            state_may_change = old_state is not None and old_state != self.state
+        if is_new or state_may_change:
+            self.state_changed_at = timezone.now()
+            if update_fields is not None and 'state_changed_at' not in update_fields:
+                kwargs['update_fields'] = list(update_fields) + ['state_changed_at']
+        super().save(*args, **kwargs)
 
     def _with_uom(self, value, uom):
         if value is None:
