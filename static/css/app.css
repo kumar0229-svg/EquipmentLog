@@ -171,6 +171,7 @@ form.inline { display: inline-flex; gap: 6px; align-items: center; margin: 0; }
 .pill.state-ISSUED,
 .pill.state-RETURNED { background: #dbeafe; color: #1e40af; }
 .pill.state-CLOSED { background: #dcfce7; color: #166534; }
+.pill.state-OPEN { background: #fef1dc; color: var(--warn); }
 
 .muted { color: var(--muted); }
 

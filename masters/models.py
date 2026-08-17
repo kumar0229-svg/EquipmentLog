@@ -164,6 +164,17 @@ class Equipment(models.Model):
         return self._with_uom(self.total_surface_area, self.equipment_type.surface_area_uom)
 
 
+class ComputerizedSystem(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
 class Product(models.Model):
     name = models.CharField(max_length=150, unique=True)
     streams = models.ManyToManyField(

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Close Out — {{ entry.incident_no }}{% endblock %}
+
+{% block content %}
+<h1>Close Out Incident — {{ entry.incident_no }}</h1>
+
+<div class="card narrow">
+  <dl class="detail">
+    <dt>Name of the Computerized System</dt><dd>{{ entry.system.name }}</dd>
+    <dt>Logged Date</dt><dd>{{ entry.logged_date|date:"d.m.Y" }}</dd>
+    <dt>Logged By</dt><dd>{{ entry.logged_by.get_full_name|default:entry.logged_by.username }}</dd>
+    <dt>Brief Description of Issue</dt><dd>{{ entry.description|linebreaksbr }}</dd>
+  </dl>
+</div>
+
+<div class="card narrow">
+  <form method="post">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for field in form %}
+    <p>
+      {{ field.label_tag }}
+      {{ field }}
+      {{ field.errors }}
+    </p>
+    {% endfor %}
+    <div class="actions">
+      <button type="submit" class="primary">Close Out</button>
+      <a class="btn" href="{% url 'software_incident_log' %}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

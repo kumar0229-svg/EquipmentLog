@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'data_entry_error_log',
     'csv_numbering_log',
     'alarm_impact_assessment_log',
+    'software_incident_log',
 ]
 
 MIDDLEWARE = [

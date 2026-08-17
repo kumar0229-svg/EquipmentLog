@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Log Incident{% endblock %}
+
+{% block content %}
+<h1>Log Incident — Computerized System</h1>
+
+{% if preview %}
+<div class="card narrow">
+  <h2>Preview</h2>
+  <dl class="detail">
+    <dt>Incident No</dt><dd>{{ form.cleaned_data.incident_no }}</dd>
+    <dt>Name of the Computerized System</dt><dd>{{ form.cleaned_data.system }}</dd>
+    <dt>Logged Date</dt><dd>{% now "d.m.Y" %}</dd>
+    <dt>Logged By</dt><dd>{{ user.get_full_name|default:user.username }}</dd>
+    <dt>Brief Description of Issue</dt><dd>{{ form.cleaned_data.description|linebreaksbr }}</dd>
+  </dl>
+
+  <form method="post">
+    {% csrf_token %}
+    {% for field in form %}{{ field.as_hidden }}{% endfor %}
+    <div class="actions">
+      <button type="submit" name="action" value="submit" class="primary">Confirm &amp; Submit</button>
+      <button type="submit" name="action" value="edit" class="btn">Edit</button>
+    </div>
+  </form>
+</div>
+
+{% else %}
+<div class="card narrow">
+  <form method="post">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for field in form %}
+    <p>
+      {{ field.label_tag }}
+      {{ field }}
+      {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
+      {{ field.errors }}
+    </p>
+    {% endfor %}
+    <div class="actions">
+      <button type="submit" name="action" value="preview" class="primary">Preview</button>
+      <a class="btn" href="{% url 'software_incident_log' %}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

@@ -2,6 +2,7 @@ from django.contrib import admin
 
 from .models import (
     Area,
+    ComputerizedSystem,
     Equipment,
     EquipmentType,
     EquipmentUsageType,
@@ -124,6 +125,13 @@ class ProductAdmin(AdminOnlyMixin, admin.ModelAdmin):
     search_fields = ['name']
     filter_horizontal = ['streams']
     inlines = [ProductEquipmentInline]
+
+
+@admin.register(ComputerizedSystem)
+class ComputerizedSystemAdmin(AdminOnlyMixin, admin.ModelAdmin):
+    list_display = ['name', 'active']
+    list_filter = ['active']
+    search_fields = ['name']
 
 
 @admin.register(SiteSetting)

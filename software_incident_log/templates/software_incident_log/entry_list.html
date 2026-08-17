@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Software Incident Log{% endblock %}
+
+{% block content %}
+<h1>Software Incident Log</h1>
+
+<div class="page-actions actions">
+  <a class="btn primary" href="{% url 'software_incident_log_new' %}">Log Incident</a>
+  {% if user.is_qa or user.is_admin_role %}
+    <a class="btn" href="{% url 'software_incident_log_select_close' %}">Close Incident</a>
+  {% endif %}
+</div>
+
+<form method="get" class="filters">
+  <p>{{ form.system.label_tag }} {{ form.system }}</p>
+  <p>{{ form.date_from.label_tag }} {{ form.date_from }}</p>
+  <p>{{ form.date_to.label_tag }} {{ form.date_to }}</p>
+  <button type="submit" class="primary">Filter</button>
+  <a class="btn" href="{% url 'software_incident_log_print' %}?{{ query }}" target="_blank">Print</a>
+</form>
+
+<div class="card">
+  <table class="grid">
+    <thead>
+      <tr>
+        <th>Incident No</th>
+        <th>Computerized System</th>
+        <th>Logged Date</th>
+        <th>Brief Description</th>
+        <th>Logged By</th>
+        <th>Category</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for entry in entries %}
+      <tr>
+        <td>{{ entry.incident_no }}</td>
+        <td>{{ entry.system.name }}</td>
+        <td>{{ entry.logged_date|date:"d.m.Y" }}</td>
+        <td>{{ entry.description|truncatechars:80 }}</td>
+        <td>{{ entry.logged_by.get_full_name|default:entry.logged_by.username }}</td>
+        <td>{{ entry.get_category_display|default:"—" }}</td>
+        <td><span class="pill state-{{ entry.status }}">{{ entry.get_status_display }}</span></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7">No incidents logged yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

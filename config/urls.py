@@ -22,5 +22,6 @@ urlpatterns = [
     path('data-entry-error-log/', include('data_entry_error_log.urls')),
     path('csv-numbering-log/', include('csv_numbering_log.urls')),
     path('alarm-impact-assessment-log/', include('alarm_impact_assessment_log.urls')),
+    path('software-incident-log/', include('software_incident_log.urls')),
     path('', include('core.urls')),
 ]

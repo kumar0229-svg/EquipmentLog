@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Close Incident{% endblock %}
+
+{% block content %}
+<h1>Close Incident</h1>
+
+{% if stage == 'incident' %}
+<div class="card narrow">
+  <p><strong>Name of the Computerized System:</strong> {{ system.name }}</p>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="pick-incident">
+    <input type="hidden" name="system" value="{{ system.pk }}">
+    {{ form.non_field_errors }}
+    <p>
+      {{ form.incident.label_tag }}
+      {{ form.incident }}
+      {{ form.incident.errors }}
+    </p>
+    <div class="actions">
+      <button type="submit" class="primary">Continue</button>
+      <a class="btn" href="{% url 'software_incident_log_select_close' %}">Change System</a>
+    </div>
+  </form>
+</div>
+
+{% else %}
+<div class="card narrow">
+  <form method="post">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <p>
+      {{ form.system.label_tag }}
+      {{ form.system }}
+      {{ form.system.errors }}
+    </p>
+    <div class="actions">
+      <button type="submit" class="primary">Continue</button>
+      <a class="btn" href="{% url 'software_incident_log' %}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,138 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Software Incident Log — Print</title>
+<style>
+  @page { size: A4 landscape; margin: 10mm; }
+  * { box-sizing: border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; color: #111; margin: 0; }
+
+  .print-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: #f2f2f2;
+    border-bottom: 1px solid #ccc;
+  }
+  .print-toolbar button { padding: 8px 18px; font-size: 14px; cursor: pointer; }
+  .print-toolbar span { font-size: 12px; color: #555; }
+
+  .print-page { padding: 10px 6px; page-break-after: always; }
+  .print-page:last-child { page-break-after: auto; }
+
+  .print-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 2px solid #111;
+    padding-bottom: 6px;
+    margin-bottom: 4px;
+  }
+  .print-header-left { display: flex; align-items: center; gap: 10px; }
+  .print-logo { height: 34px; width: auto; }
+  .print-title { font-size: 15px; font-weight: bold; margin: 0; }
+  .print-location { font-size: 12px; margin: 2px 0 0; }
+  .print-meta { font-size: 10px; text-align: right; line-height: 1.4; }
+
+  .print-filters { font-size: 10.5px; margin: 4px 0 8px; }
+
+  table.print-log { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 11px; }
+  table.print-log th, table.print-log td {
+    border: 1px solid #555; padding: 3px 5px; text-align: left;
+    overflow-wrap: break-word;
+  }
+  table.print-log th { background: #eee; }
+
+  .print-footer {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9.5px;
+    margin-top: 6px;
+    border-top: 1px solid #999;
+    padding-top: 4px;
+  }
+
+  @media print {
+    .print-toolbar { display: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="print-toolbar">
+    <button onclick="window.print()">Print</button>
+    <span>Tip: uncheck &quot;Headers and footers&quot; in the print dialog for a clean printout.</span>
+  </div>
+
+  {% for page_rows in pages %}
+  <div class="print-page">
+    <div class="print-header">
+      <div class="print-header-left">
+        <img src="{% static 'img/cipla-logo.svg' %}" alt="Cipla" class="print-logo">
+        <div>
+          <p class="print-title">INCIDENCE LOG OF COMPUTERIZED SYSTEM</p>
+          <p class="print-location">Location: {{ location }}</p>
+        </div>
+      </div>
+      <div class="print-meta">
+        Date: {{ generated_at|date:"d.m.Y" }}<br>
+        Generated: {{ generated_at|date:"d.m.Y H:i" }}<br>
+        By: {{ user.get_full_name|default:user.username }}
+      </div>
+    </div>
+
+    <div class="print-filters"><strong>Filters applied:</strong> {{ filters_display }}</div>
+
+    <table class="print-log">
+      <colgroup>
+        <col style="width: 10%">
+        <col style="width: 13%">
+        <col style="width: 9%">
+        <col style="width: 20%">
+        <col style="width: 10%">
+        <col style="width: 8%">
+        <col style="width: 12%">
+        <col style="width: 9%">
+        <col style="width: 9%">
+      </colgroup>
+      <thead>
+        <tr>
+          <th>Incidence Number</th>
+          <th>Name of the Computerized System</th>
+          <th>Logged Date</th>
+          <th>Brief Description of Issue</th>
+          <th>Logged By / Issued By</th>
+          <th>Category</th>
+          <th>Any Validation / Performance Required</th>
+          <th>Verified By</th>
+          <th>Closeout Date/Sign</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in page_rows %}
+        <tr>
+          <td>{{ entry.incident_no }}</td>
+          <td>{{ entry.system.name }}</td>
+          <td>{{ entry.logged_date|date:"d.m.Y" }}</td>
+          <td>{{ entry.description }}</td>
+          <td>{{ entry.logged_by.get_full_name|default:entry.logged_by.username }}</td>
+          <td>{{ entry.get_category_display|default:"" }}</td>
+          <td>{{ entry.get_validation_required_display|default:"" }}</td>
+          <td>{% if entry.verified_by %}{{ entry.verified_by.get_full_name|default:entry.verified_by.username }}{% endif %}</td>
+          <td>{{ entry.closeout_date|date:"d.m.Y" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="9">No entries match these filters.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="print-footer">
+      <span>CIPLog — Software Incident Log</span>
+      <span>Page {{ forloop.counter }} of {{ pages|length }}</span>
+    </div>
+  </div>
+  {% endfor %}
+</body>
+</html>
